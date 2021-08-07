@@ -1,0 +1,8 @@
+/* And chip */
+CHIP And {
+    IN a, b;
+    OUT out;
+    PARTS:
+    Nand(a=a, b=b, out=no);
+    Nand(a=no, b=no, out=out);
+}
