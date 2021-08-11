@@ -3,7 +3,7 @@
  * Carry out implemented by Majority Function 
  */
 
-CHIP FullAdder {
+CHIP FullAdderM {
     IN a, b, c;  // 1-bit inputs
     OUT sum,     // Right bit of a + b + c
         carry;   // Left bit of a + b + c
