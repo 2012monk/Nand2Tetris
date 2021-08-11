@@ -1,0 +1,11 @@
+/* Majority Function 3-bit */
+CHIP Maj {
+    IN a, b, c;
+    OUT out;
+    PARTS:
+    And(a=a, b=b, out=o1);
+    And(a=a, b=c, out=o2);
+    And(a=c, b=b, out=o3);
+    Or(a=o1, b=o2, out=w1);
+    Or(a=o3, b=w1, out=out);
+}

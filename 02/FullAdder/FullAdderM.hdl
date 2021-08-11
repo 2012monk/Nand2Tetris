@@ -1,0 +1,16 @@
+/**
+ * Computes the sum of three bits.
+ * Carry out implemented by Majority Function 
+ */
+
+CHIP FullAdder {
+    IN a, b, c;  // 1-bit inputs
+    OUT sum,     // Right bit of a + b + c
+        carry;   // Left bit of a + b + c
+
+    PARTS:
+    Maj(a=a, b=b, c=c, out=carry);
+    Xor(a=a, b=b, out=xab);
+    Xor(a=xab, b=c, out=sum);
+
+}
