@@ -19,18 +19,15 @@ CHIP PC {
     Inc16(in=regOut, out=inco);
     Mux8Way16(
         a=regOut,
-        b=false,
         c=in,
-        d=false,
         e=inco,
-        f=false,
         g=in,
-        h=false,
         sel[0]=reset,
         sel[1]=load,
         sel[2]=inc,
         out=regIn
     );
+
     Register(in=regIn, load=true, out=out, out=regOut);
 
 }
