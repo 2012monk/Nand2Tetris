@@ -10,7 +10,7 @@ public interface Parser {
      * @throws java.util.NoSuchElementException if there are no more command in instruction
      */
     void advance();
-    Command commandType();
+    CommandType commandType();
     String symbol();
     String dest();
     String comp();
