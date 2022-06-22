@@ -31,19 +31,19 @@ public class Command {
     }
 
     private void parseCommand(String command) {
-        String[] splitted = command.split(" ");
-        type = CommandType.type(splitted[0]);
-        if (type.argc() > splitted.length - 1) {
+        String[] split = command.split(" ");
+        type = CommandType.type(split[0]);
+        if (type.argc() > split.length - 1) {
             throw new IllegalArgumentException("unexpected end of command");
         }
         if (type == CommandType.C_ARITHMETIC) {
-            arg1 = splitted[0];
+            arg1 = split[0];
         }
         if (type.argc() > 0) {
-            arg1 = splitted[1];
+            arg1 = split[1];
         }
         if (type.argc() > 1) {
-            arg2 = Integer.parseInt(splitted[2]);
+            arg2 = Integer.parseInt(split[2]);
         }
     }
 }
