@@ -73,9 +73,10 @@ public class Parser {
                 continue;
             }
             try {
-                commands.add(new Command(line.strip()));
+                commands.add(new Command(line.replaceAll("\t", " ").strip()));
             } catch (Exception e) {
-                throw new IllegalArgumentException(e.getMessage() + " at line " + lineCount);
+                throw new IllegalArgumentException(e);
+//                throw new IllegalArgumentException(e.getMessage() + " at line " + lineCount);
             }
         }
     }

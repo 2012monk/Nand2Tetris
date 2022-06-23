@@ -8,8 +8,8 @@ public enum CommandType {
     C_PUSH(2, "push"),
     C_POP(2, "pop"),
     C_LABEL(1, "label"),
-    C_GOTO(2, "goto", "if-goto"),
-    C_IF(1, "if"),
+    C_GOTO(1, "goto"),
+    C_IF(1, "if-goto"),
     C_FUNCTION(2, "function"),
     C_CALL(2, "call"),
     C_RETURN(0, "return");

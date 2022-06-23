@@ -1,6 +1,9 @@
 package translator;
 
 import static translator.constants.CommandType.C_ARITHMETIC;
+import static translator.constants.CommandType.C_GOTO;
+import static translator.constants.CommandType.C_IF;
+import static translator.constants.CommandType.C_LABEL;
 import static translator.constants.CommandType.C_POP;
 import static translator.constants.CommandType.C_PUSH;
 
@@ -9,8 +12,8 @@ import translator.constants.CommandType;
 
 public class VMTranslator {
 
-    private CodeWriter writer;
-    private File[] files;
+    private final CodeWriter writer;
+    private final File[] files;
 
     public VMTranslator(String path) {
         File file = new File(path);
@@ -50,6 +53,15 @@ public class VMTranslator {
             }
             if (t == C_PUSH || t == C_POP) {
                 writer.writePushPop(t, parser.arg1(), parser.arg2());
+            }
+            if (t == C_GOTO) {
+                writer.writeGoto(parser.arg1());
+            }
+            if (t == C_IF) {
+                writer.writeIf(parser.arg1());
+            }
+            if (t == C_LABEL) {
+                writer.writeLabel(parser.arg1());
             }
             parser.advance();
         }

@@ -28,19 +28,23 @@ public class CodeWriter {
     private static final String SP_REG = SP.reg();
     private static final String X0_REG = X0.reg();
     private static final String END_INST = "(__END)\n@__END\n0;JMP";
+    private static final String STK_POP =
+        String.join("\n", SP_REG, "AM=M-1", "D=M");
     private static final String POP_INST =
-        String.join("\n", "D=A", X0_REG, "M=D", SP_REG, "AM=M-1", "D=M", X0_REG, "A=M", "M=D");
+        String.join("\n", "D=A", X0_REG, "M=D", STK_POP, X0_REG, "A=M", "M=D");
     private static final String PUSH_INST =
         String.join("\n", SP_REG, "A=M", "M=D", SP_REG, "M=M+1");
     private static final String COMP_JMP =
         String.join( "\n", "D=M-D", "M=-1",
-            "@%s", "D;%s", "A=M-1", "M=0", "M=0", "(%s)");
+            "@%s", "D;%s", "A=M-1", "M=0", "(%s)");
     private static final String ERR_ACCESS_CONST = "segfault can not access constant";
     private static final String ERR_STATIC_SEGFAULT = "static variable should allocated in 0-239";
     private static final String ERR_ACCESS_OOB = "invalid segment index";
+    private static final String DEFAULT_FUNC_NAME = "__Root";
     private final ASMFileWriter fw;
     private final Map<Integer, String> staticVariables = new HashMap<>();
-    private String currentFile;
+    private String fileName;
+    private String currentFunction;
     private int lineNo;
 
     /**
@@ -58,8 +62,41 @@ public class CodeWriter {
      * @param fileName set new File to translate
      */
     public void setFileName(String fileName) {
-        currentFile = fileName;
+        this.fileName = fileName;
         lineNo = 1;
+    }
+
+    public void writeInit() {
+
+    }
+
+    public void writeLabel(String label) {
+        if (currentFunction == null) {
+            currentFunction = DEFAULT_FUNC_NAME;
+        }
+        fw.writeLine(String.format("(%s.%s$%s)", fileName, currentFunction, label));
+    }
+
+    public void writeGoto(String label) {
+        fw.writeLines(String.format("@%s.%s$%s", fileName, currentFunction, label), "0;JMP");
+    }
+
+    public void writeIf(String label) {
+        fw.writeLines(STK_POP,
+            String.format("@%s.%s$%s", fileName, currentFunction, label),
+            "D;JNE");
+    }
+
+    public void writeCall(String func, int argc) {
+
+    }
+
+    public void writeReturn() {
+
+    }
+
+    public void writeFunction(String label, int argc) {
+
     }
 
     /**
@@ -69,7 +106,7 @@ public class CodeWriter {
      */
     public void writeArithmetic(String command) {
         lineNo++;
-        processArithmetic(ASMCommand.command(command), currentFile, lineNo);
+        processArithmetic(ASMCommand.command(command), fileName, lineNo);
     }
 
     private void processArithmetic(ASMCommand command, String fileName, int lineNo) {
@@ -115,7 +152,7 @@ public class CodeWriter {
             fw.writeLine(getStaticVar(index));
             return;
         }
-        loadConstant(index);
+        fw.writeLines("@" + index, "D=A");
         if (segment == CONSTANT) {
             return;
         }
@@ -128,15 +165,10 @@ public class CodeWriter {
     }
 
     private void push(MemorySymbol segment) {
-        String dReg = "D=M";
-        if (segment == CONSTANT) {
-            dReg = "D=A";
+        if (segment != CONSTANT) {
+            fw.writeLine("D=M");
         }
-        fw.writeLines(dReg, PUSH_INST);
-    }
-
-    private void loadConstant(int val) {
-        fw.writeLines("@" + val, "D=A");
+        fw.writeLine(PUSH_INST);
     }
 
     private String getStaticVar(int index) {
@@ -144,7 +176,7 @@ public class CodeWriter {
             throw new IllegalArgumentException(ERR_STATIC_SEGFAULT);
         }
         if (!staticVariables.containsKey(index)) {
-            staticVariables.put(index, String.format("@%s.%d", currentFile, index));
+            staticVariables.put(index, String.format("@%s.%d", fileName, index));
         }
         return staticVariables.get(index);
     }
