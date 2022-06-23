@@ -10,12 +10,16 @@ public enum MemorySymbol {
     THAT("that", "@THAT", 15),
     PTR("pointer", "@R3", 15),
     TMP("temp", "@R5", 12),
-    X0(null, "@R13", 15),
-    X1(null, "@R14", 15),
-    X2(null, "@R15", 15),
+    X0(null, "@R13", 2),
+    X1(null, "@R14", 1),
+    X2(null, "@R15", 0),
     SP(null, "@SP", 0),
     STATIC("static", null, 255),
-    CONSTANT("constant", null, (1<<16) - 1)
+    CONSTANT("constant", null, (1<<16) - 1),
+    FRAME(null, "@R15", 0),
+    RET(null, "@R14", 0)
+
+
     ;
     private static final Map<String, MemorySymbol> symbolMap = new HashMap<>();
     static {
@@ -43,6 +47,10 @@ public enum MemorySymbol {
 
     public int limit() {
         return limit;
+    }
+
+    public String vm() {
+        return vm;
     }
 
     public boolean withinBound(int index) {

@@ -1,7 +1,5 @@
 package translator;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import org.junit.jupiter.api.Test;
 
 class VMTranslatorTest {
@@ -15,6 +13,7 @@ class VMTranslatorTest {
         String path = "../MemoryAccess/PointerTest/PointerTest.vm";
         translate(path);
     }
+
     @Test
     void basic() {
         String path = "../MemoryAccess/BasicTest/BasicTest.vm";
@@ -26,6 +25,7 @@ class VMTranslatorTest {
         String path = "../StackArithmetic/SimpleAdd/SimpleAdd.vm";
         translate(path);
     }
+
     @Test
     void stack() {
         String path = "../StackArithmetic/StackTest/StackTest.vm";
@@ -47,6 +47,30 @@ class VMTranslatorTest {
     @Test
     void fibonacci() {
         String path = "../../08/ProgramFlow/FibonacciSeries/FibonacciSeries.vm";
+        translate(path);
+    }
+
+    @Test
+    void simpleFunction() {
+        String path = "../../08/FunctionCalls/SimpleFunction/SimpleFunction.vm";
+        translate(path);
+    }
+
+    @Test
+    void fibE() {
+        String path = "../../08/FunctionCalls/FibonacciElement/";
+        translate(path);
+    }
+
+    @Test
+    void nested() {
+        String path = "../../08/FunctionCalls/NestedCall/";
+        translate(path);
+    }
+
+    @Test
+    void funcStaticTest() {
+        String path = "../../08/FunctionCalls/StaticsTest/";
         translate(path);
     }
 }

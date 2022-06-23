@@ -1,11 +1,5 @@
 package translator;
 
-import static translator.constants.CommandType.C_ARITHMETIC;
-import static translator.constants.CommandType.C_GOTO;
-import static translator.constants.CommandType.C_IF;
-import static translator.constants.CommandType.C_LABEL;
-import static translator.constants.CommandType.C_POP;
-import static translator.constants.CommandType.C_PUSH;
 
 import java.io.File;
 import translator.constants.CommandType;
@@ -46,23 +40,10 @@ public class VMTranslator {
     }
 
     private void translate(Parser parser) {
+        writer.writeInit();
         while (parser.hasMoreCommands()) {
             CommandType t = parser.commandType();
-            if (t == C_ARITHMETIC) {
-                writer.writeArithmetic(parser.arg1());
-            }
-            if (t == C_PUSH || t == C_POP) {
-                writer.writePushPop(t, parser.arg1(), parser.arg2());
-            }
-            if (t == C_GOTO) {
-                writer.writeGoto(parser.arg1());
-            }
-            if (t == C_IF) {
-                writer.writeIf(parser.arg1());
-            }
-            if (t == C_LABEL) {
-                writer.writeLabel(parser.arg1());
-            }
+            t.translate(writer, parser);
             parser.advance();
         }
     }
