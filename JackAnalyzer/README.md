@@ -9,11 +9,18 @@ lexical typs:
 
 terminal:
 
+<keyword> ::= 'class' | 'constructor' | 'function' | 'method' | 
+             'field' | 'static' | 'var' | 'int' |
+             'char' | 'boolean' | 'void' | 'true' |
+             'true' | 'false' | 'null' | 'this' |
+             'let' | 'do' | 'if' | 'else' |
+             'while' | 'return'
+<symbol> ::= '{' | '}' | '(' | ')' | '[' | ']' | '.' |
+             ',' | ';' | '+' | '-' | '*' | '/' | '&' |
+             '|' | '<' | '>' | '=' | '~'
+<integerConstant> ::= 0..32767 base 10 number
 <identifier> ::= <letters> {(<letters> | <digit> | '_')}
-<stringConstant> ::= <unicode> - '"' - '\n'
-<symbol> ::=
-<keyword> ::= 
-<integerConstant> ::=
+<stringConstant> ::= '"' <unicode> - '"' - '\r' - '\n' '"'
 
 nonterminal:
 
@@ -22,7 +29,7 @@ program structure:
 
 <classVarDec> ::= ( 'static' | 'field' ) <type> <varName> {,<varName>} ;
 <type> = 'int' | 'char' | 'boolean' | <className>
-<subRoutineDec> = ( 'constructor' | 'function' | 'method' ) (void | <type>) <subroutineName> ( <parameterList> )
+<subRoutineDec> = ( 'constructor' | 'function' | 'method' ) (void | <type>) <subroutineName> ([<parameterList>])
 <parameterList> ::= <type> <varName> {, <type> <varName>}
 <subRoutineBody> ::= '{' [<varDec>] <statements> '}'
 <varDec> ::= 'var' <type> <varName> {, <varName>} ';'
