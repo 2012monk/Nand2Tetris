@@ -4,7 +4,7 @@ import compiler.constants.TokenType;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JackXMLWriter {
+public class JackXMLWriter implements JackWriter{
 
     private static final Map<String, String> xmlConverts = new HashMap<>() {{
         put("<", "&lt;");
@@ -21,9 +21,8 @@ public class JackXMLWriter {
     private String offset = "";
     private String currentNode;
 
-    public JackXMLWriter(String dest, boolean NON_INDENT) {
-        this.isNonIndent = NON_INDENT;
-        this.writer = new JackFileWriter(dest);
+    public JackXMLWriter(String dest, boolean isAppend) {
+        this.writer = new JackFileWriter(dest, isAppend);
     }
 
     public JackXMLWriter(String dest) {

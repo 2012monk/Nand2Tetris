@@ -1,34 +1,8 @@
 package compiler;
 
-import static compiler.constants.IdentifierType.CLASS_NAME;
-import static compiler.constants.IdentifierType.SUB_ROUTINE_NAME;
-import static compiler.constants.IdentifierType.VAR_NAME;
-import static compiler.constants.Keyword.BOOLEAN;
-import static compiler.constants.Keyword.CHAR;
-import static compiler.constants.Keyword.CLASS;
-import static compiler.constants.Keyword.CONSTRUCTOR;
-import static compiler.constants.Keyword.DO;
-import static compiler.constants.Keyword.ELSE;
-import static compiler.constants.Keyword.FALSE;
-import static compiler.constants.Keyword.FIELD;
-import static compiler.constants.Keyword.FUNCTION;
-import static compiler.constants.Keyword.IF;
-import static compiler.constants.Keyword.INT;
-import static compiler.constants.Keyword.LET;
-import static compiler.constants.Keyword.METHOD;
-import static compiler.constants.Keyword.NULL;
-import static compiler.constants.Keyword.RETURN;
-import static compiler.constants.Keyword.STATIC;
-import static compiler.constants.Keyword.THIS;
-import static compiler.constants.Keyword.TRUE;
-import static compiler.constants.Keyword.VAR;
-import static compiler.constants.Keyword.VOID;
-import static compiler.constants.Keyword.WHILE;
-import static compiler.constants.TokenType.IDENTIFIER;
-import static compiler.constants.TokenType.INT_CONSTANT;
-import static compiler.constants.TokenType.KEY_WORD;
-import static compiler.constants.TokenType.STRING_CONSTANT;
-import static compiler.constants.TokenType.SYMBOL;
+import static compiler.constants.IdentifierType.*;
+import static compiler.constants.Keyword.*;
+import static compiler.constants.TokenType.*;
 
 import compiler.constants.IdentifierType;
 import compiler.constants.Keyword;
@@ -38,9 +12,15 @@ public class CompilationEngine {
 
     private static final String ERR_INVALID_SYNTAX = "invalid syntax";
     private JackTokenizer jtz;
-    private JackXMLWriter writer;
+    private JackWriter writer;
     private IdentifierTable table;
     private int lineNo = 0;
+
+    public CompilationEngine(JackTokenizer jtz, JackWriter writer) {
+        this.writer = writer;
+        this.jtz = jtz;
+        table = new IdentifierTable();
+    }
 
     public CompilationEngine(String src, String dest) {
         jtz = new JackTokenizer(src);
@@ -62,7 +42,6 @@ public class CompilationEngine {
         oneOrZero(() -> varRepeat(this::compileSubroutine));
         compileSymbol('}');
         closeNode("class");
-        writer.close();
     }
 
     public void compileClassVarDec() {

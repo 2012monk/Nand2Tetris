@@ -8,12 +8,16 @@ public class JackFileWriter {
 
     private final FileWriter fw;
 
-    public JackFileWriter(String path) {
+    public JackFileWriter(String path, boolean isAppend) {
         try {
-            fw = new FileWriter(path);
+            fw = new FileWriter(path, isAppend);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public JackFileWriter(String path) {
+        this(path, false);
     }
 
     public void writeLines(String ...lines) {
