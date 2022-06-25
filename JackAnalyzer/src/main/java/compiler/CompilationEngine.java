@@ -28,9 +28,11 @@ import static compiler.constants.TokenType.IDENTIFIER;
 import static compiler.constants.TokenType.INT_CONSTANT;
 import static compiler.constants.TokenType.KEY_WORD;
 import static compiler.constants.TokenType.STRING_CONSTANT;
+import static compiler.constants.TokenType.SYMBOL;
 
 import compiler.constants.IdentifierType;
 import compiler.constants.Keyword;
+import compiler.constants.TokenType;
 
 public class CompilationEngine {
 
@@ -56,11 +58,11 @@ public class CompilationEngine {
         compileKeyword(CLASS);
         declareIdentifier(CLASS_NAME);
         compileSymbol('{');
-        and(() -> oneOrZero(this::compileClassVarDec),
-            () -> oneOrZero(this::compileSubroutine)
-        );
+        oneOrZero(() -> varRepeat(this::compileClassVarDec));
+        oneOrZero(() -> varRepeat(this::compileSubroutine));
         compileSymbol('}');
         close("class");
+        writer.close();
     }
 
     public void compileClassVarDec() {
@@ -109,7 +111,7 @@ public class CompilationEngine {
     public void compileSubroutineBody() {
         open("subroutineBody");
         compileSymbol('{');
-        oneOrZero(this::compileVarDec);
+        oneOrZero(() -> varRepeat(this::compileVarDec));
         compileStatements();
         compileSymbol('}');
         close("subroutineBody");
@@ -145,19 +147,11 @@ public class CompilationEngine {
         close("varDec");
     }
 
-    private void varRepeat(Runnable r) {
-        while (true) {
-            try {
-                r.run();
-            } catch (Exception e) {
-                return;
-            }
-        }
-    }
-
     public void compileStatements() {
-        or(this::compileLet, this::compileWhile, this::compileIf,
-            this::compileDo, this::compileReturn);
+        open("statements");
+        varRepeat(() -> or(this::compileLet, this::compileWhile, this::compileIf,
+            this::compileDo, this::compileReturn));
+        close("statements");
     }
 
     public void compileLet() {
@@ -183,6 +177,7 @@ public class CompilationEngine {
             raiseErrInvalidSyntax();
         }
         open("ifStatement");
+        compileKeyword(IF);
         compileSymbol('(');
         compileExpr();
         compileSymbol(')');
@@ -216,27 +211,22 @@ public class CompilationEngine {
         if (jtz.keyword() != DO) {
             raiseErrInvalidSyntax();
         }
-        open("do");
+        open("doStatement");
         compileKeyword(DO);
         compileSubroutineCall();
         compileSymbol(';');
-        close("do");
+        close("doStatement");
     }
 
     private void compileSubroutineCall() {
-        Runnable callSubroutine = () ->
-            referenceIdentifier(SUB_ROUTINE_NAME);
-        Runnable callClassSubroutine = () -> {
-            referenceIdentifier(CLASS_NAME);
+        referenceIdentifier();
+        oneOrZero(() -> {
             compileSymbol('.');
-            referenceIdentifier(SUB_ROUTINE_NAME);
-        };
-        and(() -> or(callClassSubroutine, callSubroutine),
-            () -> {
-                compileSymbol('(');
-                compileExprList();
-                compileSymbol(')');
-            });
+            referenceIdentifier();
+        });
+        compileSymbol('(');
+        compileExprList();
+        compileSymbol(')');
     }
 
 
@@ -244,24 +234,46 @@ public class CompilationEngine {
         if (jtz.keyword() != RETURN) {
             raiseErrInvalidSyntax();
         }
-        open("return");
+        open("returnStatement");
+        compileKeyword(RETURN);
         oneOrZero(this::compileExpr);
         compileSymbol(';');
-        close("return");
+        close("returnStatement");
 
     }
 
     public void compileExpr() {
-        open("term");
+        TokenType type = jtz.tokenType();
+        if (type != INT_CONSTANT && type != STRING_CONSTANT && type != IDENTIFIER
+            && type != KEY_WORD && type != SYMBOL) {
+            raiseErrInvalidSyntax();
+        }
+        if (type == KEY_WORD && (jtz.keyword() != TRUE && jtz.keyword() != FALSE &&
+            jtz.keyword() != NULL && jtz.keyword() != THIS)) {
+            raiseErrInvalidSyntax();
+        }
+        if (type == SYMBOL && (jtz.symbol() != '-' && jtz.symbol() != '~')) {
+            raiseErrInvalidSyntax();
+        }
+        open("expression");
         compileTerm();
-        varRepeat(() -> {
-            compileOp();
-            compileTerm();
-        });
-        close("term");
+        while (true) {
+            try {
+                compileOp();
+                compileTerm();
+            } catch (Exception e) {
+                break;
+            }
+        }
+//        zeroOrMore(() -> {
+//            compileOp();
+//            compileTerm();
+//        });
+        close("expression");
     }
 
     public void compileTerm() {
+        open("term");
         Runnable intConst = () -> {
             writer.writeTerminal(INT_CONSTANT, jtz.intVal());
             jtz.advance();
@@ -270,24 +282,37 @@ public class CompilationEngine {
             writer.writeTerminal(STRING_CONSTANT, jtz.stringVal());
             jtz.advance();
         };
-        Runnable keyConst = () -> compileKeyword(TRUE, FALSE, NULL, THIS);
-        Runnable refExpr = () -> {
-            referenceIdentifier(VAR_NAME);
-            compileSymbol('[');
-            compileExpr();
-            compileSymbol(']');
-        };
         Runnable expr = () -> {
-            compileSymbol('{');
+            compileSymbol('(');
             compileExpr();
-            compileSymbol('}');
+            compileSymbol(')');
         };
-        Runnable subCall = this::compileSubroutineCall;
         Runnable unaryOp = () -> {
             compileUnaryOp();
             compileTerm();
         };
-        or(intConst, strConst, keyConst, refExpr, expr, subCall, unaryOp);
+        Runnable keyConst = () -> compileKeyword(TRUE, FALSE, NULL, THIS);
+        Runnable refExpr = () ->
+            oneOrZero(() -> {
+                compileSymbol('[');
+                compileExpr();
+                compileSymbol(']');
+            });
+        Runnable subCall = () -> {
+            oneOrZero(() -> {
+                compileSymbol('.');
+                referenceIdentifier();
+            });
+            compileSymbol('(');
+            compileExprList();
+            compileSymbol(')');
+        };
+        Runnable refCall = () -> {
+            referenceIdentifier();
+            oneOrZero(subCall, refExpr);
+        };
+        or(keyConst, intConst, strConst, refCall, expr, unaryOp);
+        close("term");
     }
 
     private void compileUnaryOp() {
@@ -299,12 +324,19 @@ public class CompilationEngine {
     }
 
     public void compileExprList() {
-
+        open("expressionList");
+        Runnable multiVars = () ->
+            varRepeat(() -> {
+                compileSymbol(',');
+                compileExpr();
+            });
+        oneOrZero(this::compileExpr, multiVars);
+        close("expressionList");
     }
 
     private void compileType() {
         or(() -> compileKeyword(INT, CHAR, BOOLEAN),
-            () -> referenceIdentifier(CLASS_NAME));
+            this::referenceIdentifier);
     }
 
     private void compileSymbol(char... cs) {
@@ -327,11 +359,16 @@ public class CompilationEngine {
         jtz.advance();
     }
 
-    private void referenceIdentifier(IdentifierType type) {
+//    private void referenceIdentifier(IdentifierType type) {
+//        String id = jtz.identifier();
+//        if (!table.contains(id, type)) {
+//            raiseErrInvalidSyntax();
+//        }
+//        jtz.advance();
+//    }
+
+    private void referenceIdentifier() {
         String id = jtz.identifier();
-        if (!table.contains(id, type)) {
-            raiseErrInvalidSyntax();
-        }
         writer.writeTerminal(IDENTIFIER, jtz.identifier());
         jtz.advance();
     }
@@ -374,5 +411,28 @@ public class CompilationEngine {
         }
         raiseErrInvalidSyntax();
     }
+
+    private void zeroOrMore(Runnable... rs) {
+        while (true) {
+            try {
+                for (Runnable r : rs) {
+                    r.run();
+                }
+            } catch (Exception ignored) {
+                return;
+            }
+        }
+    }
+
+    private void varRepeat(Runnable r) {
+        while (true) {
+            try {
+                r.run();
+            } catch (Exception e) {
+                return;
+            }
+        }
+    }
+
 }
 

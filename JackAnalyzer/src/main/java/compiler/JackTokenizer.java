@@ -96,7 +96,7 @@ public class JackTokenizer {
         if (words.isEmpty()) {
             throw new NoSuchElementException(ERR_NO_MORE_TOKEN);
         }
-//        if (currentType != TokenType.STRING_CONSTANT) throw new IllegalArgumentException(ERR_TYPE_MISMATCH);
+        if (currentType != TokenType.STRING_CONSTANT) throw new IllegalArgumentException(ERR_TYPE_MISMATCH);
         return words.peek().replaceAll("\"", "");
     }
 
@@ -128,7 +128,11 @@ public class JackTokenizer {
             String[] sp = cm.split("\"");
             Queue<String> q = new LinkedList<>();
             Pattern p = Pattern.compile("\\s++|"+SYMBOL_SPLITTER);
-            for (int i = 0; i < sp.length; i+= 2) {
+            for (int i = 0; i < sp.length; i++) {
+                if (i % 2 == 1) {
+                    q.add("\"" + sp[i] + "\"");
+                    continue;
+                }
                 q.addAll(p.splitAsStream(sp[i])
                     .filter(x -> x != null && !x.isEmpty() && !x.isBlank())
                     .collect(Collectors.toList())
@@ -136,8 +140,6 @@ public class JackTokenizer {
             }
             System.out.println(q);
             return q;
-
-
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

@@ -31,7 +31,7 @@ program structure:
 <type> = 'int' | 'char' | 'boolean' | <className>
 <subRoutineDec> = ( 'constructor' | 'function' | 'method' ) (void | <type>) <subroutineName> ([<parameterList>])
 <parameterList> ::= [<type> <varName> {, <type> <varName>}]
-<subRoutineBody> ::= '{' [<varDec>] <statements> '}'
+<subRoutineBody> ::= '{' {<varDec>} <statements> '}'
 <varDec> ::= 'var' <type> <varName> {, <varName>} ';'
 <className> ::= <identifier>
 <subroutineName> ::= <identifier>
@@ -49,8 +49,10 @@ statement:
 expression:
 <expression> ::= <term> {<op> <term>}
 <term> ::= <integerConstant> | <stringConstant> | <keywordConstant> |
-           <varName> {'['<expression>']'} | <subroutineCall> |
-           '{'<expression>'}' | <unaryOp> <term> |
+           <varName> ['['<expression>']'] | <subroutineCall> |
+           '('<expression>')' | <unaryOp> <term> |
+           <identifier> ( <subroutineCall> | ['['<expression>']'] }
+           ('intConst' | 'strConst' | <keywordConst>)
            
 <subroutineCall> ::= <subroutineName> '(' <expressionList> ')' |
                      <className>'.'<subroutineName>'('<expressionList>')'

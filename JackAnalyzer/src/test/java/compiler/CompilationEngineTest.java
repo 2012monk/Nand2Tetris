@@ -1,18 +1,33 @@
 package compiler;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class CompilationEngineTest {
 
-    String file = "../10/Square/Main.jack";
+    String path = "../10/Square/";
+    String name = "Main.jack";
+    String compPath;
+    //    String file = "../10/ExpressionLessSquare/Main.jack";
     CompilationEngine engine;
+
+    void comp() throws IOException {
+        assertArrayEquals(
+            Files.readAllBytes(Path.of(compPath)),
+            Files.readAllBytes(Path.of("test.xml"))
+        );
+    }
 
     @BeforeEach
     void setUp() {
-        engine = new CompilationEngine(file, "test.xml");
+        String dest = path + name.replace("jack", "xml");
+        compPath = path + "ans" + name.replace("jack", "xml");
+        engine = new CompilationEngine(path + name, dest);
     }
 
     @Test
@@ -20,8 +35,9 @@ class CompilationEngineTest {
     }
 
     @Test
-    void compileClass() {
+    void compileClass() throws IOException {
         engine.compileClass();
+        comp();
     }
 
     @Test
