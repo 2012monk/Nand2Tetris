@@ -100,6 +100,10 @@ public class JackTokenizer {
         return words.peek().replaceAll("\"", "");
     }
 
+    public String raw() {
+        return words.peek();
+    }
+
     public boolean hasMoreTokens() {
         return !words.isEmpty();
     }

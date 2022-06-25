@@ -45,13 +45,14 @@ statement:
 <ifStatement> ::= 'if' '(' <expression> ')' '{' <statements> '}' {'else' '{' <statements '}'}
 <doStatement> ::= 'do' <subRoutineCall> ';'
 <returnStatement> ::= 'return' [<expression>]';'
+<whileStatement> ::= 'while' '(' <expression> ')' '{' <statements> '}'
 
 expression:
 <expression> ::= <term> {<op> <term>}
 <term> ::= <integerConstant> | <stringConstant> | <keywordConstant> |
            <varName> ['['<expression>']'] | <subroutineCall> |
            '('<expression>')' | <unaryOp> <term> |
-           <identifier> ( <subroutineCall> | ['['<expression>']'] }
+           <identifier> [ (<subroutineCall> | ['['<expression>']']) ]
            ('intConst' | 'strConst' | <keywordConst>)
            
 <subroutineCall> ::= <subroutineName> '(' <expressionList> ')' |
