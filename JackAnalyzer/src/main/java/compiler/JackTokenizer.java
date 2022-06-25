@@ -21,7 +21,8 @@ public class JackTokenizer {
     private static final String SYMBOL_PATTERN = "[{}()\\[\\].,;+\\-*/&|<>=~]";
     private static final String SYMBOL_SPLITTER =
         "((?<=" + SYMBOL_PATTERN + ")|(?=" + SYMBOL_PATTERN + "))";
-    private static final Pattern WS_OUTER_QUOT_P = Pattern.compile(WS_OUTER_STRING_CONST+"|"+SYMBOL_SPLITTER, Pattern.MULTILINE);
+    private static final Pattern WS_OUTER_QUOT_P =
+        Pattern.compile(WS_OUTER_STRING_CONST+"|"+SYMBOL_SPLITTER, Pattern.MULTILINE);
     private static final Pattern TOKEN_DELIMITER =
         Pattern.compile(DELIMITERS + "|" + SYMBOL_SPLITTER, Pattern.MULTILINE);
     private static final Pattern COMMENTS_P =
@@ -32,7 +33,7 @@ public class JackTokenizer {
         Pattern.compile(SYMBOL_PATTERN);
 
     private static final String ERR_NO_MORE_TOKEN = "no more token";
-    private static final String ERR_TYPE_MISMATCH = "invalid type value";
+    private static final String ERR_TYPE_MISMATCH = "invalid token";
 
     private final Queue<String> words;
     private TokenType currentType;
@@ -51,7 +52,7 @@ public class JackTokenizer {
             throw new NoSuchElementException(ERR_NO_MORE_TOKEN);
         }
         if (currentType != TokenType.KEY_WORD) {
-            throw new IllegalArgumentException(ERR_TYPE_MISMATCH);
+            raiseInvalidType(TokenType.KEY_WORD, currentType);
         }
         return Keyword.get(words.peek());
     }
@@ -61,9 +62,14 @@ public class JackTokenizer {
             throw new NoSuchElementException(ERR_NO_MORE_TOKEN);
         }
         if (currentType != TokenType.SYMBOL) {
-            throw new IllegalArgumentException(ERR_TYPE_MISMATCH);
+            raiseInvalidType(TokenType.SYMBOL, currentType);
         }
         return words.peek().charAt(0);
+    }
+
+    private void raiseInvalidType(TokenType exp, TokenType actual) {
+        throw new IllegalArgumentException(
+            String.format("%s expected:%s actual:%s token:%s", ERR_TYPE_MISMATCH, exp, actual, words.peek()));
     }
 
     public String identifier() {
@@ -71,7 +77,7 @@ public class JackTokenizer {
             throw new NoSuchElementException(ERR_NO_MORE_TOKEN);
         }
         if (currentType != TokenType.IDENTIFIER) {
-            throw new IllegalArgumentException(ERR_TYPE_MISMATCH);
+            raiseInvalidType(TokenType.IDENTIFIER, currentType);
         }
         return words.peek();
     }
@@ -81,7 +87,7 @@ public class JackTokenizer {
             throw new NoSuchElementException(ERR_NO_MORE_TOKEN);
         }
         if (currentType != TokenType.INT_CONSTANT) {
-            throw new IllegalArgumentException(ERR_TYPE_MISMATCH);
+            raiseInvalidType(TokenType.INT_CONSTANT, currentType);
         }
         return Integer.parseInt(words.peek());
     }
@@ -128,6 +134,7 @@ public class JackTokenizer {
                     .collect(Collectors.toList())
                 );
             }
+            System.out.println(q);
             return q;
 
 

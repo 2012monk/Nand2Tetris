@@ -30,7 +30,7 @@ program structure:
 <classVarDec> ::= ( 'static' | 'field' ) <type> <varName> {,<varName>} ;
 <type> = 'int' | 'char' | 'boolean' | <className>
 <subRoutineDec> = ( 'constructor' | 'function' | 'method' ) (void | <type>) <subroutineName> ([<parameterList>])
-<parameterList> ::= <type> <varName> {, <type> <varName>}
+<parameterList> ::= [<type> <varName> {, <type> <varName>}]
 <subRoutineBody> ::= '{' [<varDec>] <statements> '}'
 <varDec> ::= 'var' <type> <varName> {, <varName>} ';'
 <className> ::= <identifier>
@@ -50,7 +50,7 @@ expression:
 <expression> ::= <term> {<op> <term>}
 <term> ::= <integerConstant> | <stringConstant> | <keywordConstant> |
            <varName> {'['<expression>']'} | <subroutineCall> |
-           '{'<expression>'}' | <unaryOp> <term>
+           '{'<expression>'}' | <unaryOp> <term> |
            
 <subroutineCall> ::= <subroutineName> '(' <expressionList> ')' |
                      <className>'.'<subroutineName>'('<expressionList>')'

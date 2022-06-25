@@ -17,7 +17,7 @@ public enum Keyword {
     CHAR,
     BOOLEAN,
     VOID,
-    TURE,
+    TRUE,
     FALSE,
     NULL,
     THIS,
@@ -52,5 +52,9 @@ public enum Keyword {
 
     public static String[] keywords() {
         return keywords;
+    }
+
+    public String keyword() {
+        return name().toLowerCase(Locale.ROOT);
     }
 }
