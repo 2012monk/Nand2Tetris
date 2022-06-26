@@ -1,17 +1,17 @@
 <class>
   <keyword> class </keyword>
-  <identifier> Main </identifier>
+  <className> Main </className>
   <symbol> { </symbol>
   <classVarDec>
     <keyword> static </keyword>
     <keyword> boolean </keyword>
-    <identifier> test </identifier>
+    <Main.static0> test </Main.static0>
     <symbol> ; </symbol>
   </classVarDec>
   <subroutineDec>
     <keyword> function </keyword>
     <keyword> void </keyword>
-    <identifier> main </identifier>
+    <functionName> main </functionName>
     <symbol> ( </symbol>
     <parameterList>
     </parameterList>
@@ -20,20 +20,20 @@
       <symbol> { </symbol>
       <varDec>
         <keyword> var </keyword>
-        <identifier> SquareGame </identifier>
-        <identifier> game </identifier>
+        <none> SquareGame </none>
+        <main.var0> game </main.var0>
         <symbol> ; </symbol>
       </varDec>
       <statements>
         <letStatement>
           <keyword> let </keyword>
-          <identifier> game </identifier>
+          <main.var0> game </main.var0>
           <symbol> = </symbol>
           <expression>
             <term>
-              <identifier> SquareGame </identifier>
+              <none> SquareGame </none>
               <symbol> . </symbol>
-              <identifier> new </identifier>
+              <none> new </none>
               <symbol> ( </symbol>
               <expressionList>
               </expressionList>
@@ -44,9 +44,9 @@
         </letStatement>
         <doStatement>
           <keyword> do </keyword>
-          <identifier> game </identifier>
+          <main.var0> game </main.var0>
           <symbol> . </symbol>
-          <identifier> run </identifier>
+          <none> run </none>
           <symbol> ( </symbol>
           <expressionList>
           </expressionList>
@@ -55,9 +55,9 @@
         </doStatement>
         <doStatement>
           <keyword> do </keyword>
-          <identifier> game </identifier>
+          <main.var0> game </main.var0>
           <symbol> . </symbol>
-          <identifier> dispose </identifier>
+          <none> dispose </none>
           <symbol> ( </symbol>
           <expressionList>
           </expressionList>
@@ -75,7 +75,7 @@
   <subroutineDec>
     <keyword> function </keyword>
     <keyword> void </keyword>
-    <identifier> more </identifier>
+    <functionName> more </functionName>
     <symbol> ( </symbol>
     <parameterList>
     </parameterList>
@@ -85,21 +85,21 @@
       <varDec>
         <keyword> var </keyword>
         <keyword> int </keyword>
-        <identifier> i </identifier>
+        <more.var0> i </more.var0>
         <symbol> , </symbol>
-        <identifier> j </identifier>
+        <more.var1> j </more.var1>
         <symbol> ; </symbol>
       </varDec>
       <varDec>
         <keyword> var </keyword>
-        <identifier> String </identifier>
-        <identifier> s </identifier>
+        <none> String </none>
+        <more.var2> s </more.var2>
         <symbol> ; </symbol>
       </varDec>
       <varDec>
         <keyword> var </keyword>
-        <identifier> Array </identifier>
-        <identifier> a </identifier>
+        <none> Array </none>
+        <more.var3> a </more.var3>
         <symbol> ; </symbol>
       </varDec>
       <statements>
@@ -116,7 +116,7 @@
           <statements>
             <letStatement>
               <keyword> let </keyword>
-              <identifier> s </identifier>
+              <more.var2> s </more.var2>
               <symbol> = </symbol>
               <expression>
                 <term>
@@ -127,7 +127,7 @@
             </letStatement>
             <letStatement>
               <keyword> let </keyword>
-              <identifier> s </identifier>
+              <more.var2> s </more.var2>
               <symbol> = </symbol>
               <expression>
                 <term>
@@ -138,7 +138,7 @@
             </letStatement>
             <letStatement>
               <keyword> let </keyword>
-              <identifier> a </identifier>
+              <more.var3> a </more.var3>
               <symbol> [ </symbol>
               <expression>
                 <term>
@@ -149,7 +149,7 @@
               <symbol> = </symbol>
               <expression>
                 <term>
-                  <identifier> a </identifier>
+                  <more.var3> a </more.var3>
                   <symbol> [ </symbol>
                   <expression>
                     <term>
@@ -168,11 +168,11 @@
           <statements>
             <letStatement>
               <keyword> let </keyword>
-              <identifier> i </identifier>
+              <more.var0> i </more.var0>
               <symbol> = </symbol>
               <expression>
                 <term>
-                  <identifier> i </identifier>
+                  <more.var0> i </more.var0>
                 </term>
                 <symbol> * </symbol>
                 <term>
@@ -181,7 +181,7 @@
                     <term>
                       <symbol> - </symbol>
                       <term>
-                        <identifier> j </identifier>
+                        <more.var1> j </more.var1>
                       </term>
                     </term>
                   </expression>
@@ -192,11 +192,11 @@
             </letStatement>
             <letStatement>
               <keyword> let </keyword>
-              <identifier> j </identifier>
+              <more.var1> j </more.var1>
               <symbol> = </symbol>
               <expression>
                 <term>
-                  <identifier> j </identifier>
+                  <more.var1> j </more.var1>
                 </term>
                 <symbol> / </symbol>
                 <term>
@@ -216,15 +216,15 @@
             </letStatement>
             <letStatement>
               <keyword> let </keyword>
-              <identifier> i </identifier>
+              <more.var0> i </more.var0>
               <symbol> = </symbol>
               <expression>
                 <term>
-                  <identifier> i </identifier>
+                  <more.var0> i </more.var0>
                 </term>
                 <symbol> | </symbol>
                 <term>
-                  <identifier> j </identifier>
+                  <more.var1> j </more.var1>
                 </term>
               </expression>
               <symbol> ; </symbol>

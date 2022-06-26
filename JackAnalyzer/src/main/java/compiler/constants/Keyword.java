@@ -7,9 +7,9 @@ import java.util.Locale;
 public enum Keyword {
 
     STATIC,
-    CLASS,
     CONSTRUCTOR,
     FIELD,
+    CLASS,
     VAR,
     FUNCTION,
     METHOD,

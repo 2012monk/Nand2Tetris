@@ -24,17 +24,22 @@ terminal:
 
 nonterminal:
 
+<varName> ::= ( <argumentName> | <className> | <fieldVarName> | <staticVarName> )
 program structure:
+declare:
 <class> ::= class <className> '{' [<classVarDec>] [<subroutineDec>] '}'
-
 <classVarDec> ::= ( 'static' | 'field' ) <type> <varName> {,<varName>} ;
-<type> = 'int' | 'char' | 'boolean' | <className>
+<varDec> ::= 'var' <type> <varName> {, <varName>} ';'
 <subRoutineDec> = ( 'constructor' | 'function' | 'method' ) (void | <type>) <subroutineName> ([<parameterList>])
+
+reference:
+<type> = 'int' | 'char' | 'boolean' | <className>
 <parameterList> ::= [<type> <varName> {, <type> <varName>}]
 <subRoutineBody> ::= '{' {<varDec>} <statements> '}'
-<varDec> ::= 'var' <type> <varName> {, <varName>} ';'
+
+identifier:
 <className> ::= <identifier>
-<subroutineName> ::= <identifier>
+<subroutineName> ::= (<functionName> | <methodName> | <constructorName>)
 <varName> ::= <identifier>
 
 statement:

@@ -13,7 +13,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-class CompilationEngineTest {
+class CompilationEngineXMLTest {
 
     String compPath;
     String dest;
@@ -42,8 +42,8 @@ class CompilationEngineTest {
     void test(String path, String  name) throws Exception {
         dest = path + name.replace("jack", "xml");
         compPath = path + "ans" + name.replace("jack", "xml");
-        engine = new CompilationEngine(path + name, dest);
-        engine.compileClass();
+        engine = new CompilationEngine(new JackTokenizer(path + name), new JackXMLWriter(dest));
+        engine.compile();
         comp();
     }
 
@@ -59,14 +59,14 @@ class CompilationEngineTest {
 
     boolean comp(Node e, Node a) {
         if (e == null && a == null) return true;
-        if (e != null && a == null) return false;
-        if (e == null) return false;
+        if (e == null || a == null) return false;
 
         String ename = e.getNodeName(), aname = a.getNodeName();
-        if (ename != null && !ename.equals(aname)) return false;
+//        if (ename != null && !ename.equals(aname)) return false;
         NodeList elist = e.getChildNodes();
         NodeList alist = a.getChildNodes();
         if (elist.getLength() != alist.getLength()) return false;
+        if (elist.getLength() == 0 && !e.getTextContent().equals(a.getTextContent()))  return false;
         for (int i = 0; i < elist.getLength(); i++) {
             if (!comp(elist.item(i), alist.item(i))) return false;
         }

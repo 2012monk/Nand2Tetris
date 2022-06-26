@@ -1,30 +1,53 @@
 package compiler;
 
-import static compiler.constants.IdentifierType.*;
-import static compiler.constants.Keyword.*;
-import static compiler.constants.TokenType.*;
+import static compiler.constants.Keyword.BOOLEAN;
+import static compiler.constants.Keyword.CHAR;
+import static compiler.constants.Keyword.CLASS;
+import static compiler.constants.Keyword.CONSTRUCTOR;
+import static compiler.constants.Keyword.DO;
+import static compiler.constants.Keyword.ELSE;
+import static compiler.constants.Keyword.FALSE;
+import static compiler.constants.Keyword.FIELD;
+import static compiler.constants.Keyword.FUNCTION;
+import static compiler.constants.Keyword.IF;
+import static compiler.constants.Keyword.INT;
+import static compiler.constants.Keyword.LET;
+import static compiler.constants.Keyword.METHOD;
+import static compiler.constants.Keyword.NULL;
+import static compiler.constants.Keyword.RETURN;
+import static compiler.constants.Keyword.STATIC;
+import static compiler.constants.Keyword.THIS;
+import static compiler.constants.Keyword.TRUE;
+import static compiler.constants.Keyword.VAR;
+import static compiler.constants.Keyword.VOID;
+import static compiler.constants.Keyword.WHILE;
+import static compiler.constants.TokenType.IDENTIFIER;
+import static compiler.constants.TokenType.INT_CONSTANT;
+import static compiler.constants.TokenType.KEY_WORD;
+import static compiler.constants.TokenType.STRING_CONSTANT;
+import static compiler.constants.TokenType.SYMBOL;
 
+import compiler.componenets.Identifier;
+import compiler.componenets.VariableIdentifier;
+import compiler.constants.DataType;
 import compiler.constants.IdentifierType;
 import compiler.constants.Keyword;
 import compiler.constants.TokenType;
+import java.util.regex.Pattern;
 
 public class CompilationEngine {
 
+    private static final Pattern IDENTIFIER_PATTERN =
+        Pattern.compile("^(?!\\d)[\\w_\\d]+");
     private static final String ERR_INVALID_SYNTAX = "invalid syntax";
-    private JackTokenizer jtz;
-    private JackWriter writer;
-    private IdentifierTable table;
-    private int lineNo = 0;
+    private static final String ERR_INVALID_IDENTIFIER = "invalid identifier ";
+    private final JackTokenizer jtz;
+    private final JackWriter writer;
+    private final IdentifierTable table;
 
     public CompilationEngine(JackTokenizer jtz, JackWriter writer) {
         this.writer = writer;
         this.jtz = jtz;
-        table = new IdentifierTable();
-    }
-
-    public CompilationEngine(String src, String dest) {
-        jtz = new JackTokenizer(src);
-        writer = new JackXMLWriter(dest);
         table = new IdentifierTable();
     }
 
@@ -36,10 +59,10 @@ public class CompilationEngine {
     public void compileClass() {
         addNode("class");
         compileKeyword(CLASS);
-        declareIdentifier(CLASS_NAME);
+        declareIdentifier(IdentifierType.CLASS_NAME);
         compileSymbol('{');
-        oneOrZero(() -> varRepeat(this::compileClassVarDec));
-        oneOrZero(() -> varRepeat(this::compileSubroutine));
+        optional(() -> zeroOrMore(this::compileClassVarDec));
+        optional(() -> zeroOrMore(this::compileSubroutine));
         compileSymbol('}');
         closeNode("class");
     }
@@ -49,27 +72,39 @@ public class CompilationEngine {
             raiseErrInvalidSyntax();
         }
         addNode("classVarDec");
-        compileKeyword(STATIC, FIELD);
-        compileType();
-        declareIdentifier(VAR_NAME);
-        varRepeat(() -> {
-            compileSymbol(',');
-            declareIdentifier(VAR_NAME);
-        });
-        compileSymbol(';');
+        compileVariables(STATIC, FIELD);
         closeNode("classVarDec");
     }
 
-    private void compileKeyword(Keyword... keywords) {
+    private Keyword compileKeyword(Keyword... keywords) {
         Keyword cur = jtz.keyword();
         for (Keyword k : keywords) {
             if (cur == k) {
                 writer.writeTerminal(KEY_WORD, cur.keyword());
                 jtz.advance();
-                return;
+                return k;
             }
         }
         raiseErrInvalidSyntax();
+        return cur;
+    }
+
+    private void compileVariables(Keyword... keywords) {
+        IdentifierType type = IdentifierType.type(compileKeyword(keywords));
+        DataType dataType = DataType.get(compileType());
+        compileVariable(type, dataType);
+        zeroOrMore(() -> {
+            compileSymbol(',');
+            compileVariable(type, dataType);
+        });
+        compileSymbol(';');
+    }
+
+    private void compileVariable(IdentifierType type, DataType dataType) {
+        String id = jtz.identifier();
+        jtz.advance();
+        VariableIdentifier var = table.declareVariable(id, type, dataType);
+        writer.writeVariable(var);
     }
 
     public void compileSubroutine() {
@@ -77,9 +112,7 @@ public class CompilationEngine {
             raiseErrInvalidSyntax();
         }
         addNode("subroutineDec");
-        compileKeyword(CONSTRUCTOR, FUNCTION, METHOD);
-        or(() -> compileKeyword(VOID), this::compileType);
-        declareIdentifier(SUB_ROUTINE_NAME);
+        declareSubroutine();
         compileSymbol('(');
         compileParameterList();
         compileSymbol(')');
@@ -87,10 +120,16 @@ public class CompilationEngine {
         closeNode("subroutineDec");
     }
 
+    private void declareSubroutine() {
+        Keyword key = compileKeyword(CONSTRUCTOR, FUNCTION, METHOD);
+        compileType(INT, BOOLEAN, CHAR, VOID);
+        declareIdentifier(IdentifierType.type(key));
+    }
+
     public void compileSubroutineBody() {
         addNode("subroutineBody");
         compileSymbol('{');
-        oneOrZero(() -> varRepeat(this::compileVarDec));
+        optional(() -> zeroOrMore(this::compileVarDec));
         compileStatements();
         compileSymbol('}');
         closeNode("subroutineBody");
@@ -98,16 +137,19 @@ public class CompilationEngine {
 
     public void compileParameterList() {
         addNode("parameterList");
-        oneOrZero(() -> {
-            compileType();
-            declareIdentifier(VAR_NAME);
+        optional(() -> {
+            compileParameter();
             zeroOrMore(() -> {
                 compileSymbol(',');
-                compileType();
-                declareIdentifier(VAR_NAME);
+                compileParameter();
             });
         });
         closeNode("parameterList");
+    }
+
+    private void compileParameter() {
+        DataType t = DataType.get(compileType());
+        compileVariable(IdentifierType.ARGUMENT_NAME, t);
     }
 
     public void compileVarDec() {
@@ -115,21 +157,13 @@ public class CompilationEngine {
             raiseErrInvalidSyntax();
         }
         addNode("varDec");
-        compileKeyword(VAR);
-        compileType();
-        declareIdentifier(VAR_NAME);
-        varRepeat(() -> {
-            compileSymbol(',');
-            compileType();
-            declareIdentifier(VAR_NAME);
-        });
-        compileSymbol(';');
+        compileVariables(VAR);
         closeNode("varDec");
     }
 
     public void compileStatements() {
         addNode("statements");
-        varRepeat(() -> or(this::compileLet, this::compileWhile, this::compileIf,
+        zeroOrMore(() -> or(this::compileLet, this::compileWhile, this::compileIf,
             this::compileDo, this::compileReturn));
         closeNode("statements");
     }
@@ -140,8 +174,8 @@ public class CompilationEngine {
         }
         addNode("letStatement");
         compileKeyword(LET);
-        declareIdentifier(VAR_NAME);
-        oneOrZero(() -> {
+        referenceIdentifier();
+        optional(() -> {
             compileSymbol('[');
             compileExpr();
             compileSymbol(']');
@@ -164,7 +198,7 @@ public class CompilationEngine {
         compileSymbol('{');
         compileStatements();
         compileSymbol('}');
-        oneOrZero(() -> {
+        optional(() -> {
             compileKeyword(ELSE);
             compileSymbol('{');
             compileStatements();
@@ -201,7 +235,7 @@ public class CompilationEngine {
 
     private void compileSubroutineCall() {
         referenceIdentifier();
-        oneOrZero(() -> {
+        optional(() -> {
             compileSymbol('.');
             referenceIdentifier();
         });
@@ -217,7 +251,7 @@ public class CompilationEngine {
         }
         addNode("returnStatement");
         compileKeyword(RETURN);
-        oneOrZero(this::compileExpr);
+        optional(this::compileExpr);
         compileSymbol(';');
         closeNode("returnStatement");
 
@@ -271,7 +305,7 @@ public class CompilationEngine {
             compileSymbol(']');
         };
         Runnable subCall = () -> {
-            oneOrZero(() -> {
+            optional(() -> {
                 compileSymbol('.');
                 referenceIdentifier();
             });
@@ -281,7 +315,7 @@ public class CompilationEngine {
         };
         Runnable refCall = () -> {
             referenceIdentifier();
-            oneOrZero(() -> or(subCall, refExpr));
+            optional(() -> or(subCall, refExpr));
         };
         or(keyConst, intConst, strConst, refCall, expr, unaryOp);
         closeNode("term");
@@ -301,14 +335,22 @@ public class CompilationEngine {
             compileSymbol(',');
             compileExpr();
         };
-        oneOrZero(this::compileExpr);
+        optional(this::compileExpr);
         zeroOrMore(multiVars);
         closeNode("expressionList");
     }
 
-    private void compileType() {
-        or(() -> compileKeyword(INT, CHAR, BOOLEAN),
-            this::referenceIdentifier);
+    private Keyword compileType() {
+        return compileType(INT, BOOLEAN, CHAR);
+    }
+
+    private Keyword compileType(Keyword... keyword) {
+        try {
+            return (compileKeyword(keyword));
+        } catch (Exception e) {
+            referenceIdentifier();
+            return CLASS;
+        }
     }
 
     private void compileSymbol(char... cs) {
@@ -324,41 +366,34 @@ public class CompilationEngine {
     }
 
     private void declareIdentifier(IdentifierType type) {
-        // TODO check if violate the identifier rules
         String id = jtz.identifier();
-        table.addIdentifier(id, type);
-        writer.writeTerminal(IDENTIFIER, jtz.identifier());
+        if (!IDENTIFIER_PATTERN.matcher(id).matches()) {
+            throw new IllegalArgumentException(ERR_INVALID_IDENTIFIER);
+        }
+        Identifier identifier = table.declareIdentifier(id, type);
+        writer.writeTerminal(identifier);
         jtz.advance();
     }
 
     private void referenceIdentifier() {
         String id = jtz.identifier();
-        writer.writeTerminal(IDENTIFIER, jtz.identifier());
+        Identifier id1 = table.reference(id);
+        writer.writeTerminal(id1);
         jtz.advance();
     }
 
     private void raiseErrInvalidSyntax(String... expected) {
         String e = String.join(" or ", expected);
-        String actual = jtz.tokenType().name();
-        throw new IllegalArgumentException(String.format("%s expected:%s actual: %s %s",
-            ERR_INVALID_SYNTAX, e, actual, jtz.raw()));
+        throw new IllegalArgumentException(String.format("%s\nsymbol:%s\ntype:%s\nexpected: %s\n",
+            ERR_INVALID_SYNTAX, jtz.tokenType(), jtz.raw(), e));
     }
 
     private void addNode(String id) {
         writer.openNonTerminal(id);
-        table.openSection();
     }
 
     private void closeNode(String id) {
         writer.closeNonTerminal(id);
-        table.closeSection();
-    }
-
-    private void oneOrZero(Runnable rs) {
-        try {
-            rs.run();
-        } catch (Exception ignore) {
-        }
     }
 
     private void or(Runnable... rs) {
@@ -372,27 +407,21 @@ public class CompilationEngine {
         raiseErrInvalidSyntax();
     }
 
-    private void zeroOrMore(Runnable... rs) {
+    private void zeroOrMore(Runnable r) {
         while (true) {
             try {
-                for (Runnable r : rs) {
-                    r.run();
-                }
+                r.run();
             } catch (Exception ignored) {
                 return;
             }
         }
     }
 
-    private void varRepeat(Runnable r) {
-        while (true) {
-            try {
-                r.run();
-            } catch (Exception e) {
-                return;
-            }
+    private void optional(Runnable rs) {
+        try {
+            rs.run();
+        } catch (Exception ignore) {
         }
     }
-
 }
 
