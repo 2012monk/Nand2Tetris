@@ -1,17 +1,22 @@
 package compiler.componenets;
 
-import compiler.constants.DataType;
 import compiler.constants.IdentifierType;
 
 public class Identifier {
 
-    public static final Identifier NONE = new Identifier();
     private String name;
     private IdentifierType type;
+    private Identifier parent;
 
     public Identifier(String name, IdentifierType type) {
         this.name = name;
         this.type = type;
+    }
+
+    public Identifier(String name, IdentifierType type, Identifier parent) {
+        this.name = name;
+        this.type = type;
+        this.parent = parent;
     }
 
     private Identifier() {
@@ -28,5 +33,17 @@ public class Identifier {
 
     public IdentifierType getType() {
         return type;
+    }
+
+    public Identifier getParent() {
+        return parent;
+    }
+
+    public void setParent(Identifier id) {
+        this.parent = id;
+    }
+
+    public boolean isVariable() {
+        return false;
     }
 }

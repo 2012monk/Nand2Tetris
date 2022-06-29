@@ -1,5 +1,6 @@
 package compiler;
 
+import compiler.ast.Token;
 import compiler.constants.Keyword;
 import compiler.constants.TokenType;
 import java.io.BufferedReader;
@@ -101,7 +102,14 @@ public class JackTokenizer {
     }
 
     public String raw() {
-        return words.peek();
+        if (words.isEmpty()) {
+            throw new NoSuchElementException(ERR_NO_MORE_TOKEN);
+        }
+        return words.peek().replaceAll("\"", "");
+    }
+
+    public Token getToken() {
+        return new Token(tokenType(), raw());
     }
 
     public boolean hasMoreTokens() {
@@ -109,6 +117,7 @@ public class JackTokenizer {
     }
 
     public void advance() {
+//        System.out.println(words.peek() + " word poped");
         words.poll();
         if (words.isEmpty()) {
             currentType = null;

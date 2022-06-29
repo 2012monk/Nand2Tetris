@@ -27,15 +27,17 @@ import static compiler.constants.TokenType.KEY_WORD;
 import static compiler.constants.TokenType.STRING_CONSTANT;
 import static compiler.constants.TokenType.SYMBOL;
 
+import compiler.ast.ASTNode;
 import compiler.componenets.Identifier;
 import compiler.componenets.VariableIdentifier;
 import compiler.constants.DataType;
 import compiler.constants.IdentifierType;
 import compiler.constants.Keyword;
+import compiler.constants.LexicalType;
 import compiler.constants.TokenType;
 import java.util.regex.Pattern;
 
-public class CompilationEngine {
+public class CompilationEngineV1 {
 
     private static final Pattern IDENTIFIER_PATTERN =
         Pattern.compile("^(?!\\d)[\\w_\\d]+");
@@ -45,7 +47,7 @@ public class CompilationEngine {
     private final JackWriter writer;
     private final IdentifierTable table;
 
-    public CompilationEngine(JackTokenizer jtz, JackWriter writer) {
+    public CompilationEngineV1(JackTokenizer jtz, JackWriter writer) {
         this.writer = writer;
         this.jtz = jtz;
         table = new IdentifierTable();
@@ -72,21 +74,9 @@ public class CompilationEngine {
             raiseErrInvalidSyntax();
         }
         addNode("classVarDec");
+        ASTNode node = new ASTNode(LexicalType.CLASS_VARIABLE_DECLARATION);
         compileVariables(STATIC, FIELD);
         closeNode("classVarDec");
-    }
-
-    private Keyword compileKeyword(Keyword... keywords) {
-        Keyword cur = jtz.keyword();
-        for (Keyword k : keywords) {
-            if (cur == k) {
-                writer.writeTerminal(KEY_WORD, cur.keyword());
-                jtz.advance();
-                return k;
-            }
-        }
-        raiseErrInvalidSyntax();
-        return cur;
     }
 
     private void compileVariables(Keyword... keywords) {
@@ -112,18 +102,24 @@ public class CompilationEngine {
             raiseErrInvalidSyntax();
         }
         addNode("subroutineDec");
-        declareSubroutine();
+//        declareSubroutine();
+        Keyword key = compileKeyword(CONSTRUCTOR, FUNCTION, METHOD);
+        Keyword t = compileType(INT, BOOLEAN, CHAR, VOID);
+        Identifier id = declareIdentifier(IdentifierType.type(key));
         compileSymbol('(');
         compileParameterList();
         compileSymbol(')');
         compileSubroutineBody();
+        int argc = table.varCount(IdentifierType.VAR_NAME);
+        System.out.printf("subroutine %s %s %s locals=%d",
+            key.getName(), id.getName(), t.getName(), argc);
         closeNode("subroutineDec");
     }
 
     private void declareSubroutine() {
         Keyword key = compileKeyword(CONSTRUCTOR, FUNCTION, METHOD);
-        compileType(INT, BOOLEAN, CHAR, VOID);
-        declareIdentifier(IdentifierType.type(key));
+        Keyword t = compileType(INT, BOOLEAN, CHAR, VOID);
+        Identifier id = declareIdentifier(IdentifierType.type(key));
     }
 
     public void compileSubroutineBody() {
@@ -175,11 +171,7 @@ public class CompilationEngine {
         addNode("letStatement");
         compileKeyword(LET);
         referenceIdentifier();
-        optional(() -> {
-            compileSymbol('[');
-            compileExpr();
-            compileSymbol(']');
-        });
+        optional(this::compileArrayIndex);
         compileSymbol('=');
         compileExpr();
         compileSymbol(';');
@@ -192,9 +184,7 @@ public class CompilationEngine {
         }
         addNode("ifStatement");
         compileKeyword(IF);
-        compileSymbol('(');
-        compileExpr();
-        compileSymbol(')');
+        compileCondition();
         compileSymbol('{');
         compileStatements();
         compileSymbol('}');
@@ -213,9 +203,7 @@ public class CompilationEngine {
         }
         addNode("whileStatement");
         compileKeyword(WHILE);
-        compileSymbol('(');
-        compileExpr();
-        compileSymbol(')');
+        compileCondition();
         compileSymbol('{');
         compileStatements();
         compileSymbol('}');
@@ -234,16 +222,17 @@ public class CompilationEngine {
     }
 
     private void compileSubroutineCall() {
-        referenceIdentifier();
+        Identifier id = referenceIdentifier();
+        compileFunctionCall();
+        compileArguments();
+    }
+
+    private void compileFunctionCall() {
         optional(() -> {
             compileSymbol('.');
             referenceIdentifier();
         });
-        compileSymbol('(');
-        compileExprList();
-        compileSymbol(')');
     }
-
 
     public void compileReturn() {
         if (jtz.keyword() != RETURN) {
@@ -281,52 +270,43 @@ public class CompilationEngine {
 
     public void compileTerm() {
         addNode("term");
-        Runnable intConst = () -> {
-            writer.writeTerminal(INT_CONSTANT, jtz.intVal());
-            jtz.advance();
-        };
-        Runnable strConst = () -> {
-            writer.writeTerminal(STRING_CONSTANT, jtz.stringVal());
-            jtz.advance();
-        };
-        Runnable expr = () -> {
-            compileSymbol('(');
-            compileExpr();
-            compileSymbol(')');
-        };
         Runnable unaryOp = () -> {
             compileUnaryOp();
             compileTerm();
         };
-        Runnable keyConst = () -> compileKeyword(TRUE, FALSE, NULL, THIS);
-        Runnable refExpr = () -> {
-            compileSymbol('[');
-            compileExpr();
-            compileSymbol(']');
-        };
         Runnable subCall = () -> {
-            optional(() -> {
-                compileSymbol('.');
-                referenceIdentifier();
-            });
-            compileSymbol('(');
-            compileExprList();
-            compileSymbol(')');
+            optional(this::compileFunctionCall);
+            compileArguments();
         };
         Runnable refCall = () -> {
             referenceIdentifier();
-            optional(() -> or(subCall, refExpr));
+            optional(() -> or(subCall, this::compileArrayIndex));
         };
-        or(keyConst, intConst, strConst, refCall, expr, unaryOp);
+        or(this::compileKeywordConstant, this::compileIntConst, this::compileStringConst, refCall,
+            this::compileCondition, unaryOp);
         closeNode("term");
     }
 
-    private void compileUnaryOp() {
-        compileSymbol('-', '~');
+    private void compileArguments() {
+        compileSymbol('(');
+        compileExprList();
+        compileSymbol(')');
     }
 
-    private void compileOp() {
-        compileSymbol('+', '-', '*', '/', '/', '&', '|', '<', '>', '=');
+    private void compileCondition() {
+        compileSymbol('(');
+        compileExpr();
+        compileSymbol(')');
+    }
+
+    private void compileArrayIndex() {
+        compileSymbol('[');
+        compileExpr();
+        compileSymbol(']');
+    }
+
+    private void compileKeywordConstant() {
+        compileKeyword(TRUE, FALSE, NULL, THIS);
     }
 
     public void compileExprList() {
@@ -338,6 +318,14 @@ public class CompilationEngine {
         optional(this::compileExpr);
         zeroOrMore(multiVars);
         closeNode("expressionList");
+    }
+
+    private void compileUnaryOp() {
+        compileSymbol('-', '~');
+    }
+
+    private void compileOp() {
+        compileSymbol('+', '-', '*', '/', '/', '&', '|', '<', '>', '=');
     }
 
     private Keyword compileType() {
@@ -353,6 +341,29 @@ public class CompilationEngine {
         }
     }
 
+    private void compileIntConst() {
+        writer.writeTerminal(INT_CONSTANT, jtz.intVal());
+        jtz.advance();
+    }
+
+    private void compileStringConst() {
+        writer.writeTerminal(STRING_CONSTANT, jtz.stringVal());
+        jtz.advance();
+    }
+
+    private Keyword compileKeyword(Keyword... keywords) {
+        Keyword cur = jtz.keyword();
+        for (Keyword k : keywords) {
+            if (cur == k) {
+                writer.writeTerminal(KEY_WORD, cur.keyword());
+                jtz.advance();
+                return k;
+            }
+        }
+        raiseErrInvalidSyntax();
+        return cur;
+    }
+
     private void compileSymbol(char... cs) {
         for (char c : cs) {
             if (jtz.symbol() != c) {
@@ -365,7 +376,7 @@ public class CompilationEngine {
         raiseErrInvalidSyntax(String.valueOf(cs));
     }
 
-    private void declareIdentifier(IdentifierType type) {
+    private Identifier declareIdentifier(IdentifierType type) {
         String id = jtz.identifier();
         if (!IDENTIFIER_PATTERN.matcher(id).matches()) {
             throw new IllegalArgumentException(ERR_INVALID_IDENTIFIER);
@@ -373,13 +384,15 @@ public class CompilationEngine {
         Identifier identifier = table.declareIdentifier(id, type);
         writer.writeTerminal(identifier);
         jtz.advance();
+        return identifier;
     }
 
-    private void referenceIdentifier() {
+    private Identifier referenceIdentifier() {
         String id = jtz.identifier();
-        Identifier id1 = table.reference(id);
-        writer.writeTerminal(id1);
+        Identifier ref = table.reference(id);
+        writer.writeTerminal(ref);
         jtz.advance();
+        return ref;
     }
 
     private void raiseErrInvalidSyntax(String... expected) {

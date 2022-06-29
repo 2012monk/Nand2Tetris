@@ -19,12 +19,14 @@ public enum IdentifierType {
     NONE("none", null, null);
 
     private static final Map<Keyword, IdentifierType> map = new HashMap<>();
+
     static {
         for (IdentifierType v : values()) {
             map.put(v.keyword, v);
         }
         map.put(Keyword.VAR, VAR_NAME);
     }
+
     private String id;
     private Keyword keyword;
     private Scope scope;
@@ -39,6 +41,11 @@ public enum IdentifierType {
         return map.get(keyword);
     }
 
+    public static IdentifierType typeG(LexicalType type) {
+        Keyword k = type.keyword();
+        return map.get(k);
+    }
+
     public String id() {
         return id;
     }
@@ -51,4 +58,7 @@ public enum IdentifierType {
         return keyword;
     }
 
+    public String getName() {
+        return id;
+    }
 }

@@ -45,4 +45,21 @@ public class JackFileWriter {
             throw new RuntimeException(e);
         }
     }
+
+    public void appendLines(String ...lines) {
+        try {
+            fw.write(String.join(" ", lines));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void newLine() {
+        try {
+            fw.write("\n");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
 }

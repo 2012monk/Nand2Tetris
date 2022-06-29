@@ -2,11 +2,8 @@ package compiler;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -17,7 +14,7 @@ class CompilationEngineXMLTest {
 
     String compPath;
     String dest;
-    CompilationEngine engine;
+    CompilationEngineV1 engine;
 
     @Test
     void squareMain() throws Exception {
@@ -42,7 +39,7 @@ class CompilationEngineXMLTest {
     void test(String path, String  name) throws Exception {
         dest = path + name.replace("jack", "xml");
         compPath = path + "ans" + name.replace("jack", "xml");
-        engine = new CompilationEngine(new JackTokenizer(path + name), new JackXMLWriter(dest));
+        engine = new CompilationEngineV1(new JackTokenizer(path + name), new JackXMLWriter(dest));
         engine.compile();
         comp();
     }

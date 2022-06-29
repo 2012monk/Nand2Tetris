@@ -29,6 +29,7 @@ public enum Keyword {
     RETURN;
 
     private static final String[] keywords;
+
     static {
         List<String> t = new ArrayList<>();
         for (Keyword k : values()) {
@@ -42,10 +43,6 @@ public enum Keyword {
         return Keyword.valueOf(val.toUpperCase(Locale.ROOT));
     }
 
-    private String lower() {
-        return name().toLowerCase();
-    }
-
     public static boolean isKeyword(String val) {
         return false;
     }
@@ -54,7 +51,15 @@ public enum Keyword {
         return keywords;
     }
 
+    private String lower() {
+        return name().toLowerCase();
+    }
+
     public String keyword() {
+        return name().toLowerCase(Locale.ROOT);
+    }
+
+    public String getName() {
         return name().toLowerCase(Locale.ROOT);
     }
 }

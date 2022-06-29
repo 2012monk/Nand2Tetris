@@ -1,0 +1,70 @@
+
+// declare function
+
+// if statement
+
+// (expr)
+
+if-goto IF_TRUE_IDX
+goto IF_FALSE_IDX
+// if-body statement
+label IF_TRUE_IDX
+goto IF_END_IDX
+label IF_FALSE_IDX
+// else-body statement
+label IF_END_IDX
+
+// let statement
+
+push var idx
+// array access expr
+// (expr)
+add
+// (expr)
+pop tmp 0
+pop ptr 1
+push tmp 0
+pop that 0
+
+
+// do statement
+
+// method call
+push var 0
+// (exprList)
+call method argc
+
+// function, constructor call
+//(exprList)
+call function argc
+
+// while statement
+
+label WHILE_CONDITION_IDX
+// (expr)
+if-goto WHILE_START_IDX
+goto WHILE_END_IDX
+label WHILE_START_IDX
+// block expr
+goto WHILE_CONDITION_IDX
+label WHILE_END_IDX
+
+// while statement
+
+label WHILE_CONDITION_IDX
+// (expr)
+not
+if-goto WHILE_END_IDX
+// block expr
+goto WHILE_CONDITION_IDX
+label WHILE_END_IDX
+
+
+// return statement
+
+// if ret type void
+push constant 0
+return
+// else
+// expr
+return

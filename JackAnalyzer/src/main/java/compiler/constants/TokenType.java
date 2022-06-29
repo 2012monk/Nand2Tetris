@@ -3,11 +3,9 @@ package compiler.constants;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -21,7 +19,7 @@ public enum TokenType {
     private static final Set<String> KEY_WORDS =
         new HashSet<>(
             List.of("class", "constructor", "function", "method", "field", "static", "var", "int",
-            "char", "boolean", "void", "true", "false", "null", "this", "let", "do", "if",
+                "char", "boolean", "void", "true", "false", "null", "this", "let", "do", "if",
                 "else", "while", "return"));
     private static final Set<String> SYMBOLS =
         new HashSet<>(
@@ -41,11 +39,6 @@ public enum TokenType {
         Pattern.compile(String.format("((?<=%s)|(?=%s))", SYMBOL_CHARS2, SYMBOL_CHARS2));
     private static final Pattern SYMBOL_PATTERN =
         Pattern.compile(SYMBOL_CHARS2);
-
-    //    private static final String DELIMITERS =
-//        "(//.*\\R*|/[*](.|\\s)*\\*/|(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)\\s+)";
-//    private static final String SYMBOL_PATTERN =
-//        "[\\{\\}\\(\\)\\[\\]\\.\\,\\;\\+\\-\\*\\/\\&\\|\\<\\>\\=\\~]";
 
     private static final PriorityQueue<TokenType> set = new PriorityQueue<>(Comparator.comparingInt(
         t -> t.priority));
@@ -70,7 +63,7 @@ public enum TokenType {
                 return type;
             }
         }
-        throw new IllegalArgumentException("unexpected Token:"+word);
+        throw new IllegalArgumentException("unexpected Token:" + word);
     }
 
     private static boolean isKeyword(String v) {
