@@ -55,12 +55,12 @@ public class ASTNode {
         this.type = type;
     }
 
-    public ASTNode add(Optional<ASTNode> optional) {
-        if (optional.isEmpty()) {
-            return this;
-        }
-        return add(optional.get());
-    }
+//    public ASTNode add(Optional<ASTNode> optional) {
+//        if (optional.isEmpty()) {
+//            return this;
+//        }
+//        return add(optional.get());
+//    }
 
     public Token getToken() {
         return token;

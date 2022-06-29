@@ -54,7 +54,7 @@ public class IdentifierTable {
     public Identifier declareIdentifier(String id, IdentifierType type) {
         Identifier identifier = new Identifier(id, type);
         if (!identifier.is(IdentifierType.CLASS_NAME)) {
-            currentClass = id;
+//            currentClass = id;
             identifier.setParent(parent.peek());
         }
         parent.push(identifier);

@@ -39,12 +39,12 @@ import compiler.ast.Token;
 import compiler.constants.Keyword;
 import compiler.constants.LexicalType;
 import compiler.constants.SymbolToken;
+import compiler.exceptions.InvalidSyntaxException;
 import compiler.exceptions.ParseFailedException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
@@ -63,7 +63,6 @@ public class Parser {
 
     public static List<ASTNode> zeroOrMoreNodes(Supplier<List<ASTNode>> r) {
         List<ASTNode> ret = new ArrayList<>();
-
         while (true) {
             try {
                 ret.addAll(r.get());
@@ -96,12 +95,12 @@ public class Parser {
             .add(declare(LexicalType.CLASS_NAME))
             .add(symbolNode(L_CURLY))
             .add(zeroOrMoreNode(this::parseClassVarDec))
-            .add(zeroOrMoreNode(this::parsSubroutine))
+            .add(zeroOrMoreNode(this::parseSubroutine))
             .add(symbolNode(R_CURLY));
 
     }
 
-    private ASTNode parsSubroutine() {
+    private ASTNode parseSubroutine() {
         return new ASTNode(LexicalType.SUBROUTINE_DECLARATION)
             .add(new ASTNode(LexicalType.SUBROUTINE_PREFIX)
                 .add(parseKeywords(CONSTRUCTOR, FUNCTION, METHOD))
@@ -135,14 +134,16 @@ public class Parser {
             .add(symbolNode(R_CURLY));
     }
 
-
     private ASTNode declare(LexicalType type) {
+//        if (jtz.tokenType() != TokenType.IDENTIFIER) {
+//            throw new InvalidSyntaxException();
+//        }
+        jtz.identifier();
         ASTNode node = new ASTNode(type)
             .add(new ASTNode(LexicalType.IDENTIFIER, jtz.getToken()));
         jtz.advance();
         return node;
     }
-
 
     public ASTNode parseClassVarDec() {
         return new ASTNode(LexicalType.CLASS_VARIABLE_DECLARATION)
@@ -150,11 +151,10 @@ public class Parser {
     }
 
     private ASTNode prefixedVarDec(Keyword... prefixes) {
-        ASTNode root = new ASTNode(LexicalType.VARIABLE_DECLARATION);
-        root.add(new ASTNode(LexicalType.MODIFIER)
+        return new ASTNode(LexicalType.VARIABLE_DECLARATION)
+            .add(new ASTNode(LexicalType.MODIFIER)
                 .add(parseKeywords(prefixes)))
             .addAll(parseVariableDec());
-        return root;
     }
 
     private List<ASTNode> parseVariableDec() {
@@ -199,8 +199,10 @@ public class Parser {
     }
 
     private ASTNode ref() {
-//        ASTNode node = new ASTNode(LexicalType.REF_TYPE);
-//        node.add(new ASTNode(LexicalType.IDENTIFIER, jtz.getToken()));
+//        if (jtz.tokenType() != TokenType.IDENTIFIER) {
+//            throw new InvalidSyntaxException();
+//        }
+        jtz.identifier();
         ASTNode node = new ASTNode(LexicalType.IDENTIFIER, jtz.getToken());
 //        ASTNode node = new ASTNode(LexicalType.REF_TYPE, jtz.getToken());
         jtz.advance();
@@ -218,14 +220,13 @@ public class Parser {
     }
 
     private ASTNode parseKeyword(Keyword keyword) {
-        Keyword k = jtz.keyword();
-        if (k == keyword) {
-            ASTNode node = new ASTNode(LexicalType.keyword(k), jtz.getToken());
-//            ASTNode node = new ASTNode(jtz.getToken());
-            jtz.advance();
-            return node;
+        if (keyword != jtz.keyword()) {
+            throw new InvalidSyntaxException();
         }
-        throw new ParseFailedException();
+        ASTNode node = new ASTNode(LexicalType.keyword(keyword), jtz.getToken());
+//            ASTNode node = new ASTNode(jtz.getToken());
+        jtz.advance();
+        return node;
     }
 
     private ASTNode statements() {
@@ -290,30 +291,35 @@ public class Parser {
     }
 
     private ASTNode subCall() {
-        return new ASTNode(LexicalType.SUBROUTINE_CALL)
-            .add(orNode(List.of(
-                this::methodCall,
-                this::selfCall
-            )))
-            .add(args());
+        ASTNode ref = ref();
+        return orNode(List.of(
+            () -> subCall(ref),
+            () -> selfCall(ref)
+        ));
+//        return new ASTNode(LexicalType.SUBROUTINE_CALL)
+//            .add(orNode(List.of(
+//                () -> subCall(ref),
+//                () -> selfCall(ref)
+//            ))
+//            )
+//            .add(args());
     }
-
-    private ASTNode methodCall() {
-        return new ASTNode(LexicalType.REF_TYPE)
-            .add(new ASTNode(LexicalType.REF_TYPE)
-                .add(ref()))
-            .add(symbolNode(DOT))
-            .add(
-                new ASTNode(LexicalType.SUBROUTINE_NAME)
-                    .add(ref())
-            );
-    }
-
-    private ASTNode selfCall() {
-        return new ASTNode(LexicalType.REF_TYPE)
-            .add(new ASTNode(LexicalType.SUBROUTINE_NAME))
-            .add(ref());
-    }
+//
+//    private ASTNode methodCall() {
+//        return new ASTNode(LexicalType.REF_TYPE)
+//            .add(new ASTNode(LexicalType.REF_TYPE)
+//                .add(ref()))
+//            .add(symbolNode(DOT))
+//            .add(new ASTNode(LexicalType.SUBROUTINE_NAME)
+//                .add(ref())
+//            );
+//    }
+//
+//    private ASTNode selfCall() {
+//        return new ASTNode(LexicalType.REF_TYPE)
+//            .add(new ASTNode(LexicalType.SUBROUTINE_NAME))
+//            .add(ref());
+//    }
 
     private ASTNode args() {
         return new ASTNode(LexicalType.ARGUMENT_LIST)
@@ -325,9 +331,10 @@ public class Parser {
     private ASTNode parseLet() {
         return new ASTNode(LexicalType.LET_STATEMENT)
             .add(parseKeywords(LET))
-            .add(new ASTNode(LexicalType.REF_TYPE)
-                .add(ref()))
-            .add(optionalNode(this::arrayAccessSuffix))
+            .add(varExpr())
+//            .add(new ASTNode(LexicalType.REF_TYPE)
+//                    .add(ref())
+//                    .add(optionalNode(this::arrayAccessSuffix)))
             .add(symbolNode(EQ))
             .add(expr())
             .add(symbolNode(SEMI_COLON));
@@ -384,9 +391,24 @@ public class Parser {
             .add(orNode(List.of(
                 () -> subCall(ref),
                 () -> selfCall(ref),
-                this::arrayAccessSuffix,
+                () -> arrayAccessExpr(ref),
                 () -> new ASTNode(LexicalType.REF_TYPE).add(ref)
             )));
+    }
+
+    private ASTNode varExpr() {
+        ASTNode ref = ref();
+        return orNode(List.of(
+            () -> arrayAccessExpr(ref),
+            () -> new ASTNode(LexicalType.REF_TYPE)
+                .add(ref))
+        );
+    }
+
+    private ASTNode arrayAccessExpr(ASTNode ref) {
+        return new ASTNode(LexicalType.ARRAY_ACCESS_EXPRESSION)
+            .add(ref)
+            .add(arrayAccessSuffix());
     }
 
     private ASTNode selfCall(ASTNode subroutine) {
@@ -486,11 +508,11 @@ public class Parser {
         throw new ParseFailedException();
     }
 
-    private Optional<ASTNode> optionalNode(Supplier<ASTNode> suppliers) {
+    private List<ASTNode> optionalNode(Supplier<ASTNode> suppliers) {
         try {
-            return Optional.ofNullable(suppliers.get());
+            return List.of(suppliers.get());
         } catch (Exception e) {
-            return Optional.empty();
+            return Collections.emptyList();
         }
     }
 

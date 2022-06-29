@@ -20,7 +20,7 @@ public class VMWriter {
     private static final String FUNCTION = "function";
     private static final String CALL = "call";
     private static final String STRING_NEW = "String.new";
-    private static final String STR_APPEND = "String.append";
+    private static final String STR_APPEND = "String.appendChar";
     private static final String MULT = "Math.multiply";
     private static final String DIV = "Math.divide";
     private final JackFileWriter writer;
@@ -93,6 +93,7 @@ public class VMWriter {
 
     public void compileFunctionDec(String className, String name, int localArgc) {
         String label = className + "." + name;
+        System.out.println(label + "\n\n\n\n\n");
         writeFunction(label, localArgc);
     }
 
@@ -134,6 +135,14 @@ public class VMWriter {
             return;
         }
         writeArithmetic(VMCommand.getOP(type));
+    }
+
+    public void compileUnaryOp(LexicalType type) {
+        VMCommand c = VMCommand.getUnaryOP(type);
+        if (c == null) {
+            throw new IllegalArgumentException();
+        }
+        writeArithmetic(c);
     }
 
     private void compileDiv() {

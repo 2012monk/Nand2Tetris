@@ -8,12 +8,13 @@ import compiler.constants.IdentifierType;
 import compiler.constants.LexicalType;
 import compiler.constants.MemorySegment;
 import compiler.constants.VMCommand;
+import java.lang.reflect.AnnotatedType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class CompilationEnginV2 {
+public class CompilationEngineV2 {
 
     private static final String IF_TRUE = "IF_TRUE_";
     private static final String IF_FALSE = "IF_FALSE_";
@@ -28,19 +29,19 @@ public class CompilationEnginV2 {
     private int ifIndex = 0;
     private int wIndex = 0;
 
-    public CompilationEnginV2(Parser parser, JackFileWriter writer) {
-        this.parser = parser;
+    public CompilationEngineV2(JackTokenizer jtz, JackFileWriter writer) {
+        this.parser = new Parser(jtz);
         vm = new VMWriter(writer);
         table = new IdentifierTable();
     }
 
     public void compile() {
         parsed = parser.parse();
-//        try {
-//            XMLUtil.writeXml("src/test/resources/tml.xml", parsed);
-//        } catch (ParserConfigurationException | IOException | TransformerException e) {
-//            e.printStackTrace();
-//        }
+        try {
+            XMLUtil.writeXml("src/test/resources/tml.xml", parsed);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         try {
             compileClass(parsed);
         } catch (Exception e) {
@@ -64,9 +65,6 @@ public class CompilationEnginV2 {
         }
     }
 
-    public void compileVariable(ASTNode node) {
-    }
-
     private void defineVar(ASTNode node) {
         if (node == null) {
             return;
@@ -88,11 +86,32 @@ public class CompilationEnginV2 {
         }
     }
 
+    private void defineParameter(ASTNode node) {
+        ASTNode dnode = firstChild(node, LexicalType.DATA_TYPE);
+        DataType t = DataType.TYPE_CLASS;
+        if (dnode.getType() != LexicalType.IDENTIFIER) {
+            t = dnode.getType().dataType();
+        }
+        for (ASTNode c : node.findChildren(LexicalType.ARGUMENT_NAME)) {
+            String name = c.getFirstChild()
+                .getToken().getValue();
+            if (t == DataType.TYPE_CLASS) {
+                table.declareVariable(name, IdentifierType.ARGUMENT_NAME, t, dnode.getValue());
+                continue;
+            }
+            table.declareVariable(name, IdentifierType.ARGUMENT_NAME, t);
+        }
+    }
+
     private void defineVars(ASTNode node) {
         List<ASTNode> nodes = node.findChildren(LexicalType.VARIABLE_DECLARATION);
         System.out.println(nodes.size());
         for (ASTNode c : nodes) {
             defineVar(c);
+        }
+        List<ASTNode> params = node.findPreOrder(LexicalType.PARAMETER_LIST).findChildren(LexicalType.PARAMETER);
+        for (ASTNode p : params) {
+            defineParameter(p);
         }
     }
 
@@ -176,23 +195,19 @@ public class CompilationEnginV2 {
     }
 
     private void compileLet(ASTNode node) {
-        ASTNode v = firstChild(node, LexicalType.REF_TYPE);
-        VariableIdentifier ref = (VariableIdentifier) table.reference(v.getValue());
-        log.log(Level.INFO, ref.getName() + "  " + ref.getType().getName());
         for (ASTNode c : node.children()) {
             if (c.getType() == LexicalType.EXPRESSION) {
                 log.log(Level.INFO, "let statement expr");
                 compileExpr(c);
             }
         }
-        ASTNode array = node.findFirst(LexicalType.ARRAY_ACCESS_SUFFIX);
-        if (array == null) {
-            vm.writePop(ref);
+        ASTNode v = node.children().get(1);
+        if (v.getType() != LexicalType.ARRAY_ACCESS_EXPRESSION) {
+            vm.writePop((VariableIdentifier) table.reference(
+                v.getFirstChild().getValue()));
             return;
         }
-        vm.writePush(ref);
-        compileArrayAccess(array);
-        vm.writePop(MemorySegment.PTR, 1);
+        compileArrayAccess(v);
         vm.writePop(MemorySegment.THAT, 0);
     }
 
@@ -200,8 +215,15 @@ public class CompilationEnginV2 {
         if (node == null) {
             return;
         }
+        System.out.println(node.getType());
+        System.out.println(node.getFirstChild().getType());
+        System.out.println(node.getFirstChild().getToken());
+        VariableIdentifier ref = (VariableIdentifier) table.reference(
+            node.getFirstChild().getValue());
         compileExpr(node.findPreOrder(LexicalType.EXPRESSION));
+        vm.writePush(ref);
         vm.writeArithmetic(VMCommand.ADD);
+        vm.writePop(MemorySegment.PTR, 1);
     }
 
     private void compileReturn(ASTNode node) {
@@ -234,14 +256,15 @@ public class CompilationEnginV2 {
         if (type == LexicalType.STRING_CONSTANT) {
             vm.compileStringConst(node.getValue());
         }
-        if (type == LexicalType.ARRAY_ACCESS_SUFFIX) {
+        if (type == LexicalType.ARRAY_ACCESS_EXPRESSION) {
             compileArrayAccess(node);
+            vm.writePush(MemorySegment.THAT, 0);
         }
         if (type == LexicalType.SUBROUTINE_CALL) {
             compileCall(node);
         }
         if (type == LexicalType.CONDITION_EXPRESSION) {
-            compileExpr(node.getFirstChild());
+            compileExpr(node.findPreOrder(LexicalType.EXPRESSION));
         }
         if (type == LexicalType.KEYWORD_CONSTANT) {
             vm.compileKeywordConst(node.getFirstChild().getType());
@@ -252,13 +275,14 @@ public class CompilationEnginV2 {
     }
 
     private void compileUnary(ASTNode node) {
-
+        compileTerm(node.findPreOrder(LexicalType.TERM));
+        vm.compileUnaryOp(firstChild(node, LexicalType.UNARY_OPERATOR).getType());
     }
 
     private void compileCall(ASTNode node) {
         log.log(Level.INFO, node.getType().getName());
-        String func = firstChild(node, LexicalType.SUBROUTINE_NAME).getValue();
         ASTNode refNode = firstChild(node, LexicalType.REF_TYPE);
+        String func = firstChild(node, LexicalType.SUBROUTINE_NAME).getValue();
         String ref = table.getCurrentClass();
         if (refNode != null) {
             ref = refNode.getValue();
@@ -284,6 +308,8 @@ public class CompilationEnginV2 {
 
     private void pushNode(ASTNode node) {
         Identifier id = table.reference(node.getValue());
+        System.out.println(id.getType() + id.getName());
+        System.out.println(node.getValue());
         vm.writePush((VariableIdentifier) id);
     }
 
@@ -300,13 +326,14 @@ public class CompilationEnginV2 {
         LexicalType type = firstChild(node, LexicalType.SUBROUTINE_PREFIX).getType();
         String name = firstChild(node, LexicalType.SUBROUTINE_NAME).getValue();
         String className = table.getCurrentClass();
+        System.out.println(className + "   " + name);
         if (type == LexicalType.METHOD) {
             table.declareIdentifier(name, IdentifierType.METHOD_NAME);
             vm.compileMethodDec(table.getCurrentClass(), name, localArgs);
         }
         if (type == LexicalType.FUNCTION) {
             table.declareIdentifier(name, IdentifierType.FUNCTIONS_NAME);
-            vm.compileFunctionDec(table.getCurrentClass(), name, localArgs);
+            vm.compileFunctionDec(className, name, localArgs);
         }
         if (type == LexicalType.CONSTRUCTOR) {
             table.declareIdentifier(name, IdentifierType.CONSTRUCTOR_NAME);

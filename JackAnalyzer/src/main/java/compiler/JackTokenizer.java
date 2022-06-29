@@ -117,7 +117,7 @@ public class JackTokenizer {
     }
 
     public void advance() {
-//        System.out.println(words.peek() + " word poped");
+//        System.out.println(words.peek() + " word consume");
         words.poll();
         if (words.isEmpty()) {
             currentType = null;

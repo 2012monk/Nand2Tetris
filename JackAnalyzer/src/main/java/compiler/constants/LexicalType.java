@@ -104,6 +104,8 @@ public enum LexicalType {
     TILDE,
     AMP,
 
+    ARRAY_ACCESS_EXPRESSION,
+
     STATIC,
     CONSTRUCTOR,
     FIELD,
