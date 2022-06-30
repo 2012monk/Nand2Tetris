@@ -1,4 +1,4 @@
-package compiler;
+package compiler.core;
 
 import compiler.ast.Token;
 import compiler.constants.Keyword;
@@ -117,7 +117,6 @@ public class JackTokenizer {
     }
 
     public void advance() {
-//        System.out.println(words.peek() + " word consume");
         words.poll();
         if (words.isEmpty()) {
             currentType = null;
@@ -126,9 +125,11 @@ public class JackTokenizer {
         currentType = TokenType.parse(words.peek());
     }
 
-    // remove comments
-    // split with quot
-    // split with white space or symbols
+    /*
+    remove comments
+    split by double quot
+    split by white space or symbols
+     */
     private Queue<String> openFile(String path) {
         try {
             StringBuilder sb = new StringBuilder();
@@ -151,7 +152,6 @@ public class JackTokenizer {
                     .collect(Collectors.toList())
                 );
             }
-            System.out.println(q);
             return q;
         } catch (Exception e) {
             throw new RuntimeException(e);

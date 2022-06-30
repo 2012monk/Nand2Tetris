@@ -1,5 +1,6 @@
 package compiler;
 
+import compiler.core.Compiler;
 import org.junit.jupiter.api.Test;
 
 public class VMCompilerEngineTest {

@@ -1,4 +1,4 @@
-package compiler;
+package compiler.parser;
 
 import static compiler.constants.Keyword.BOOLEAN;
 import static compiler.constants.Keyword.CHAR;
@@ -33,19 +33,23 @@ import static compiler.constants.SymbolToken.R_CURLY;
 import static compiler.constants.SymbolToken.R_SQUARE;
 import static compiler.constants.SymbolToken.SEMI_COLON;
 import static compiler.constants.SymbolToken.TILDE;
+import static compiler.parser.ParserUtil.optionalNode;
+import static compiler.parser.ParserUtil.optionalNodes;
+import static compiler.parser.ParserUtil.orNode;
+import static compiler.parser.ParserUtil.zeroOrMoreNode;
+import static compiler.parser.ParserUtil.zeroOrMoreNodes;
 
 import compiler.ast.ASTNode;
 import compiler.ast.Token;
 import compiler.constants.Keyword;
 import compiler.constants.LexicalType;
 import compiler.constants.SymbolToken;
+import compiler.core.JackTokenizer;
 import compiler.exceptions.InvalidSyntaxException;
 import compiler.exceptions.ParseFailedException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 public class Parser {
@@ -61,32 +65,9 @@ public class Parser {
         this.jtz = jtz;
     }
 
-    public static List<ASTNode> zeroOrMoreNodes(Supplier<List<ASTNode>> r) {
-        List<ASTNode> ret = new ArrayList<>();
-        while (true) {
-            try {
-                ret.addAll(r.get());
-            } catch (Exception ignored) {
-                return ret;
-            }
-        }
-    }
-
-    public static List<ASTNode> zeroOrMoreNode(Supplier<ASTNode> r) {
-        List<ASTNode> ret = new ArrayList<>();
-
-        while (true) {
-            try {
-                ret.add(r.get());
-            } catch (Exception ignored) {
-                return ret;
-            }
-        }
-    }
 
     public ASTNode parse() {
         return parseClass();
-//        writer.close();
     }
 
     public ASTNode parseClass() {
@@ -123,7 +104,7 @@ public class Parser {
     private ASTNode parameter() {
         return new ASTNode(LexicalType.PARAMETER)
             .add(parseDataType())
-            .add(declare(LexicalType.ARGUMENT_NAME));
+            .add(declare(LexicalType.VARIABLE_NAME));
     }
 
     private ASTNode subroutineBody() {
@@ -135,10 +116,9 @@ public class Parser {
     }
 
     private ASTNode declare(LexicalType type) {
-//        if (jtz.tokenType() != TokenType.IDENTIFIER) {
-//            throw new InvalidSyntaxException();
-//        }
-        jtz.identifier();
+        if (!IDENTIFIER_PATTERN.matcher(jtz.identifier()).matches()) {
+            throw new ParseFailedException(ERR_INVALID_IDENTIFIER);
+        }
         ASTNode node = new ASTNode(type)
             .add(new ASTNode(LexicalType.IDENTIFIER, jtz.getToken()));
         jtz.advance();
@@ -173,8 +153,6 @@ public class Parser {
         for (SymbolToken s : symbols) {
             if (s.is(c)) {
                 ASTNode node = new ASTNode(LexicalType.symbol(s), jtz.getToken());
-//                ASTNode node = new ASTNode(s)
-//                    .add(new ASTNode(jtz.getToken()));
                 jtz.advance();
                 return node;
             }
@@ -199,12 +177,8 @@ public class Parser {
     }
 
     private ASTNode ref() {
-//        if (jtz.tokenType() != TokenType.IDENTIFIER) {
-//            throw new InvalidSyntaxException();
-//        }
         jtz.identifier();
         ASTNode node = new ASTNode(LexicalType.IDENTIFIER, jtz.getToken());
-//        ASTNode node = new ASTNode(LexicalType.REF_TYPE, jtz.getToken());
         jtz.advance();
         return node;
     }
@@ -224,7 +198,6 @@ public class Parser {
             throw new InvalidSyntaxException();
         }
         ASTNode node = new ASTNode(LexicalType.keyword(keyword), jtz.getToken());
-//            ASTNode node = new ASTNode(jtz.getToken());
         jtz.advance();
         return node;
     }
@@ -296,30 +269,7 @@ public class Parser {
             () -> subCall(ref),
             () -> selfCall(ref)
         ));
-//        return new ASTNode(LexicalType.SUBROUTINE_CALL)
-//            .add(orNode(List.of(
-//                () -> subCall(ref),
-//                () -> selfCall(ref)
-//            ))
-//            )
-//            .add(args());
     }
-//
-//    private ASTNode methodCall() {
-//        return new ASTNode(LexicalType.REF_TYPE)
-//            .add(new ASTNode(LexicalType.REF_TYPE)
-//                .add(ref()))
-//            .add(symbolNode(DOT))
-//            .add(new ASTNode(LexicalType.SUBROUTINE_NAME)
-//                .add(ref())
-//            );
-//    }
-//
-//    private ASTNode selfCall() {
-//        return new ASTNode(LexicalType.REF_TYPE)
-//            .add(new ASTNode(LexicalType.SUBROUTINE_NAME))
-//            .add(ref());
-//    }
 
     private ASTNode args() {
         return new ASTNode(LexicalType.ARGUMENT_LIST)
@@ -332,9 +282,6 @@ public class Parser {
         return new ASTNode(LexicalType.LET_STATEMENT)
             .add(parseKeywords(LET))
             .add(varExpr())
-//            .add(new ASTNode(LexicalType.REF_TYPE)
-//                    .add(ref())
-//                    .add(optionalNode(this::arrayAccessSuffix)))
             .add(symbolNode(EQ))
             .add(expr())
             .add(symbolNode(SEMI_COLON));
@@ -342,12 +289,6 @@ public class Parser {
 
     private ASTNode expr() {
         return new ASTNode(LexicalType.EXPRESSION)
-            .add(term())
-            .add(zeroOrMoreNode(this::binaryExpr));
-    }
-
-    private ASTNode ternaryExpr() {
-        return new ASTNode(LexicalType.TERNARY_EXPRESSION)
             .add(term())
             .add(zeroOrMoreNode(this::binaryExpr));
     }
@@ -365,7 +306,7 @@ public class Parser {
     }
 
     private ASTNode op() {
-        return new ASTNode(LexicalType.OPERATOR)
+        return new ASTNode(LexicalType.BINARY_OPERATOR)
             .add(symbolNode(SymbolToken.PLUS, SymbolToken.MINUS, SymbolToken.ASTERISK,
                 SymbolToken.SLASH, SymbolToken.AMP, SymbolToken.PIPE,
                 SymbolToken.LT, SymbolToken.GT, SymbolToken.EQ));
@@ -430,14 +371,6 @@ public class Parser {
             .add(args());
     }
 
-    private ASTNode funcCall() {
-        return new ASTNode(LexicalType.SUBROUTINE_CALL)
-            .add(optionalNodes(() -> List.of(symbolNode(DOT),
-                new ASTNode(LexicalType.SUBROUTINE_NAME)
-                    .add(ref()))))
-            .add(args());
-    }
-
     private ASTNode exprList() {
         return new ASTNode(LexicalType.EXPRESSION_LIST)
             .add(optionalNode(this::expr))
@@ -467,8 +400,6 @@ public class Parser {
         jtz.stringVal();
         jtz.advance();
         return new ASTNode(LexicalType.STRING_CONSTANT, t);
-//        return new ASTNode(LexicalType.STRING_CONSTANT)
-//            .add(new ASTNode(t));
     }
 
     private ASTNode intConst() {
@@ -476,8 +407,6 @@ public class Parser {
         jtz.intVal();
         jtz.advance();
         return new ASTNode(LexicalType.INTEGER_CONSTANT, t);
-//        return new ASTNode(LexicalType.INTEGER_CONSTANT)
-//            .add(new ASTNode(t));
     }
 
     private ASTNode unaryOperator() {
@@ -490,37 +419,5 @@ public class Parser {
             .add(symbolNode(L_SQUARE))
             .add(expr())
             .add(symbolNode(R_SQUARE));
-    }
-
-    private void raiseErrInvalidSyntax(String... expected) {
-        String e = String.join(" or ", expected);
-        throw new IllegalArgumentException(String.format("%s\nsymbol:%s\ntype:%s\nexpected: %s\n",
-            ERR_INVALID_SYNTAX, jtz.tokenType(), jtz.raw(), e));
-    }
-
-    private ASTNode orNode(List<Supplier<ASTNode>> suppliers) {
-        for (Supplier<ASTNode> s : suppliers) {
-            try {
-                return s.get();
-            } catch (Exception ignored) {
-            }
-        }
-        throw new ParseFailedException();
-    }
-
-    private List<ASTNode> optionalNode(Supplier<ASTNode> suppliers) {
-        try {
-            return List.of(suppliers.get());
-        } catch (Exception e) {
-            return Collections.emptyList();
-        }
-    }
-
-    private List<ASTNode> optionalNodes(Supplier<List<ASTNode>> suppliers) {
-        try {
-            return suppliers.get();
-        } catch (Exception e) {
-            return Collections.emptyList();
-        }
     }
 }

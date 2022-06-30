@@ -1,9 +1,10 @@
-package compiler;
+package compiler.core;
 
 import static compiler.constants.MemorySegment.ARG;
 import static compiler.constants.MemorySegment.CONSTANT;
 import static compiler.constants.MemorySegment.PTR;
 
+import compiler.utils.JackFileWriter;
 import compiler.componenets.VariableIdentifier;
 import compiler.constants.LexicalType;
 import compiler.constants.MemorySegment;

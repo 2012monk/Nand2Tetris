@@ -46,24 +46,23 @@ public enum LexicalType {
 
     EXPRESSION_LIST,
     TERM,
-    OPERATOR,
-    BINARY_OPERATOR,
-    UNARY_OPERATOR,
+
     TERNARY_EXPRESSION,
 
     INTEGER_CONSTANT,
     STRING_CONSTANT,
     KEYWORD_CONSTANT,
 
+    ARRAY_ACCESS_EXPRESSION,
     ARRAY_ACCESS_SUFFIX,
     UNARY_EXPRESSION,
     BINARY_EXPRESSION,
 
+    UNARY_OPERATOR,
+    BINARY_OPERATOR,
+
     SUBROUTINE_CALL,
-    METHOD_CALL,
     SUBROUTINE_CALL_SUFFIX,
-    FUNCTION_CALL,
-    CONSTRUCTOR_CALL,
 
     TERMINAL,
     SUBROUTINE_NAME,
@@ -78,7 +77,7 @@ public enum LexicalType {
     SYMBOL_TOKEN,
     REF_TYPE,
     EXPRESSION, MODIFIER,
-    KEYWORD,IDENTIFIER,
+    KEYWORD, IDENTIFIER,
     VARIABLE_NAME,
     SELF_CALL,
     CALL_TYPE,
@@ -104,7 +103,6 @@ public enum LexicalType {
     TILDE,
     AMP,
 
-    ARRAY_ACCESS_EXPRESSION,
 
     STATIC,
     CONSTRUCTOR,
@@ -131,8 +129,6 @@ public enum LexicalType {
     private static final Map<String, LexicalType> types = new HashMap<>();
     private static final Set<LexicalType> terminal = new HashSet<>();
     private static final Set<LexicalType> varDec = new HashSet<>();
-    private static final Map<SymbolToken, LexicalType> symbols = new HashMap<>();
-    private static final Map<Keyword, LexicalType> keywords = new HashMap<>();
 
     static {
         for (LexicalType t : values()) {
@@ -153,14 +149,6 @@ public enum LexicalType {
         );
     }
 
-    public static boolean isVarDec(LexicalType type) {
-        return varDec.contains(type);
-    }
-
-    public static boolean isTerminal(LexicalType type) {
-        return false;
-    }
-
     public static LexicalType symbol(SymbolToken s) {
         return valueOf(s.name());
     }
@@ -177,15 +165,10 @@ public enum LexicalType {
         return Keyword.valueOf(name());
     }
 
-    public SymbolToken symbolToken() {
-        return SymbolToken.valueOf(name());
-    }
-
     public DataType dataType() {
+        if (this == IDENTIFIER) {
+            return DataType.TYPE_CLASS;
+        }
         return DataType.get(keyword());
-    }
-
-    public IdentifierType id() {
-        return IdentifierType.type(keyword());
     }
 }

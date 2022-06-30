@@ -1,6 +1,9 @@
 package compiler;
 
 import compiler.ast.ASTNode;
+import compiler.core.JackTokenizer;
+import compiler.parser.Parser;
+import compiler.utils.XMLUtil;
 import java.io.IOException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;

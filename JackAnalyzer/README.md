@@ -1,3 +1,12 @@
+## Nand To Tetris Chapter 10~11 JackCompiler 구현
+
+### TODO
+
+- refactor Tokenizer 
+- refactor Parser
+- refactor Compiler
+- 파서 실패 메세지 추가
+
 ## Jack Language Definition
 
 EBNF 표기
@@ -62,10 +71,8 @@ expression:
            <varName> ['['<expression>']'] | <subroutineCall> |
            '('<expression>')' | <unaryOp> <term> |
            <identifier> [ ('.' <functionCall> | ['['<expression>']']) ]
-           ('intConst' | 'strConst' | <keywordConst>)
 
 <expression> ::= <unaryExpr> | <ternaryExpr>
-<ternaryExpr> ::= <unaryExpr> { <binaryExpr> }
 <unaryExpr> ::= (<unaryOp> <term> | <term> )
 <binaryExpr> ::= <op> <expression>
 <arrayAccessExpr> ::= <varName> <arrayAccessSuffix>
@@ -75,13 +82,6 @@ expression:
 <subroutineCall> ::= <subroutineName> '(' <expressionList> ')' |
                      <className>'.'<subroutineName>'('<expressionList>')'
 <expressionList> ::= [<expression> {, <expression>}]
-
-<subroutineCall> ::= [<className> '.'] <functionsCall> ;
-<subroutineCall> ::= (<methodCall> | <functionCall> | <constructorCall>)
-
-<methodCall> ::= <methodName> <args>
-<constructorCall> ::= <className> <args>
-<functionCall> ::= <subroutineName> <args>
 
 <args> = '('<expressionList> ')' ;
 

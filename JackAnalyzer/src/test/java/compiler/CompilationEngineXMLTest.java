@@ -2,6 +2,8 @@ package compiler;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
+import compiler.core.CompilationEngineV1;
+import compiler.core.JackTokenizer;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.jupiter.api.Test;

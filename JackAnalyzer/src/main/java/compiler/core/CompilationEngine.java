@@ -1,5 +1,7 @@
-package compiler;
+package compiler.core;
 
+import compiler.utils.JackFileWriter;
+import compiler.utils.XMLUtil;
 import compiler.ast.ASTNode;
 import compiler.componenets.Identifier;
 import compiler.componenets.VariableIdentifier;
@@ -8,36 +10,39 @@ import compiler.constants.IdentifierType;
 import compiler.constants.LexicalType;
 import compiler.constants.MemorySegment;
 import compiler.constants.VMCommand;
-import java.util.ArrayList;
+import compiler.parser.Parser;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class CompilationEngineV2 {
+public class CompilationEngine {
 
+    private static final Logger LOG = Logger.getGlobal();
     private static final String IF_TRUE = "IF_TRUE_";
     private static final String IF_FALSE = "IF_FALSE_";
     private static final String IF_END = "IF_END_";
     private static final String WHILE_COND = "WHILE_CONDITION_";
     private static final String WHILE_END = "WHILE_END_";
     private static int i = 0;
-    private final Logger LOG = Logger.getLogger("compileEngineLogger");
-    private IdentifierTable table;
-    private ASTNode parsed;
-    private VMWriter vm;
-    private Parser parser;
+    private final IdentifierTable table;
+    private final VMWriter vm;
+    private final Parser parser;
     private int ifIndex = 0;
     private int wIndex = 0;
 
-    public CompilationEngineV2(JackTokenizer jtz, JackFileWriter writer) {
+    public CompilationEngine(JackTokenizer jtz, JackFileWriter writer) {
         this.parser = new Parser(jtz);
         vm = new VMWriter(writer);
         table = new IdentifierTable();
     }
 
+    public CompilationEngine(String src) {
+        this(new JackTokenizer(src), new JackFileWriter(src.replace(".jack", ".vm")));
+    }
+
     public void compile() {
-        parsed = parser.parse();
+        ASTNode parsed = parser.parse();
         try {
             XMLUtil.writeXml("src/test/resources/" + i++ + ".xml", parsed);
         } catch (Exception ignored) {
@@ -47,15 +52,14 @@ public class CompilationEngineV2 {
     }
 
     private void compileClass(ASTNode node) {
-        table.declareClass(node.findFirst(LexicalType.CLASS_NAME)
-            .getFirstChild().getToken().getValue());
-        List<ASTNode> varDecs = new ArrayList<>();
-        node.findChildren(LexicalType.CLASS_VARIABLE_DECLARATION, varDecs);
-        for (ASTNode n : varDecs) {
-            defineVar(n);
+        table.declareClass(node.findInImmediate(LexicalType.CLASS_NAME)
+            .orElseThrow()
+            .getFirstChild()
+            .getValue());
+        for (ASTNode child : node.findChildren(LexicalType.CLASS_VARIABLE_DECLARATION)) {
+            defineVar(child.getFirstChild());
         }
-        List<ASTNode> subDecs = new ArrayList<>();
-        node.findChildren(LexicalType.SUBROUTINE_DECLARATION, subDecs);
+        List<ASTNode> subDecs = node.findChildren(LexicalType.SUBROUTINE_DECLARATION);
         for (ASTNode n : subDecs) {
             defineSubroutine(n);
         }
@@ -65,52 +69,26 @@ public class CompilationEngineV2 {
     }
 
     private void defineVar(ASTNode node) {
-        if (node == null) {
-            return;
+        LexicalType prefix = LexicalType.PARAMETER;
+        Optional<ASTNode> mod = node.findInImmediate(LexicalType.MODIFIER);
+        if (mod.isPresent()) {
+            prefix = mod.get()
+                .getFirstChild()
+                .getType();
         }
-        LexicalType prefix = node.findFirst(LexicalType.MODIFIER).getFirstChild().getType();
-        ASTNode dnode = firstChild(node, LexicalType.DATA_TYPE);
-        DataType t = DataType.TYPE_CLASS;
-        if (dnode.getType() != LexicalType.IDENTIFIER) {
-            t = dnode.getType().dataType();
-        }
+        ASTNode dType = firstChild(node, LexicalType.DATA_TYPE);
+        DataType t = dType.getType().dataType();
         for (ASTNode c : node.findChildren(LexicalType.VARIABLE_NAME)) {
-            String name = c.getFirstChild()
-                .getToken().getValue();
-            if (t == DataType.TYPE_CLASS) {
-                table.declareVariable(name, prefix.id(), t, dnode.getValue());
-                continue;
-            }
-            table.declareVariable(name, prefix.id(), t);
-        }
-    }
-
-    private void defineParameter(ASTNode node) {
-        ASTNode dnode = firstChild(node, LexicalType.DATA_TYPE);
-        DataType t = DataType.TYPE_CLASS;
-        if (dnode.getType() != LexicalType.IDENTIFIER) {
-            t = dnode.getType().dataType();
-        }
-        for (ASTNode c : node.findChildren(LexicalType.ARGUMENT_NAME)) {
-            String name = c.getFirstChild()
-                .getToken().getValue();
-            if (t == DataType.TYPE_CLASS) {
-                table.declareVariable(name, IdentifierType.ARGUMENT_NAME, t, dnode.getValue());
-                continue;
-            }
-            table.declareVariable(name, IdentifierType.ARGUMENT_NAME, t);
+            String name = c.getFirstChild().getValue();
+            table.declareVariable(name, IdentifierType.varType(prefix), t, dType.getValue());
         }
     }
 
     private void defineVars(ASTNode node) {
         List<ASTNode> nodes = node.findChildren(LexicalType.VARIABLE_DECLARATION);
+        nodes.addAll(node.findChildren(LexicalType.PARAMETER));
         for (ASTNode c : nodes) {
             defineVar(c);
-        }
-        List<ASTNode> params = node.findPreOrder(LexicalType.PARAMETER_LIST)
-            .findChildren(LexicalType.PARAMETER);
-        for (ASTNode p : params) {
-            defineParameter(p);
         }
     }
 
@@ -119,18 +97,10 @@ public class CompilationEngineV2 {
         compileSubroutineDec(node);
         compileStatements(node.findPreOrder(LexicalType.STATEMENTS));
         LexicalType ret = firstChild(node, LexicalType.RETURN_TYPE).getType();
-        if (ret != LexicalType.VOID) {
-            compileReturn(node.findFirst(LexicalType.RETURN_STATEMENT));
-            return;
-        }
-        vm.writePush(MemorySegment.CONSTANT, 0);
-        vm.writeReturn();
+        compileReturn(node.findFirst(LexicalType.RETURN_STATEMENT), ret);
     }
 
     private void compileStatements(ASTNode node) {
-        if (node == null) {
-            return;
-        }
         LOG.info("statements children :" + node.children().size());
         for (ASTNode c : node.children()) {
             LexicalType t = c.getType();
@@ -152,16 +122,14 @@ public class CompilationEngineV2 {
     }
 
     private void compileIf(ASTNode node) {
-        ASTNode ifBody = node.findInImmediate(LexicalType.IF_BODY).orElseThrow();
+        ASTNode ifBody = node.findInImmediate(LexicalType.IF_BODY).orElseThrow()
+            .findPreOrder(LexicalType.STATEMENTS);
         compileExpr(node.findPreOrder(LexicalType.EXPRESSION));
         Optional<ASTNode> el = node.findInImmediate(LexicalType.ELSE_BODY);
-        if (el.isPresent()) {
-            ifElseBlock(ifBody.findPreOrder(LexicalType.STATEMENTS),
-                el.get().findPreOrder(LexicalType.STATEMENTS), ifIndex++);
-        } else {
-            ifBlock(ifBody.findPreOrder(LexicalType.STATEMENTS), ifIndex++);
-
-        }
+        el.ifPresentOrElse(
+            e -> ifElseBlock(ifBody, e.findPreOrder(LexicalType.STATEMENTS), ifIndex++),
+            () -> ifBlock(ifBody, ifIndex++)
+        );
     }
 
     private void ifBlock(ASTNode ifSt, int idx) {
@@ -209,7 +177,6 @@ public class CompilationEngineV2 {
     private void compileLet(ASTNode node) {
         LOG.log(Level.INFO, "let statement expr");
         compileExpr(node.findInImmediate(LexicalType.EXPRESSION).orElseThrow());
-//        ASTNode v = node.children().get(1);
         node.findInImmediate(LexicalType.ARRAY_ACCESS_EXPRESSION)
             .ifPresent(n -> {
                 compileArrayAccess(n);
@@ -221,9 +188,6 @@ public class CompilationEngineV2 {
     }
 
     private void compileArrayAccess(ASTNode node) {
-        if (node == null) {
-            return;
-        }
         LOG.info("");
         VariableIdentifier ref = (VariableIdentifier) table.reference(
             node.getFirstChild().getValue());
@@ -233,8 +197,12 @@ public class CompilationEngineV2 {
         vm.writePop(MemorySegment.PTR, 1);
     }
 
-    private void compileReturn(ASTNode node) {
-        compileExpr(node.findPreOrder(LexicalType.EXPRESSION));
+    private void compileReturn(ASTNode node, LexicalType ret) {
+        if (ret != LexicalType.VOID) {
+            compileExpr(node.findPreOrder(LexicalType.EXPRESSION));
+        } else {
+            vm.writePush(MemorySegment.CONSTANT, 0);
+        }
         vm.writeReturn();
     }
 
@@ -326,7 +294,7 @@ public class CompilationEngineV2 {
     private void compileBinaryExpr(ASTNode node) {
         LOG.info("");
         compileTerm(node.getLastChild());
-        vm.compileOp(firstChild(node, LexicalType.OPERATOR).getType());
+        vm.compileOp(firstChild(node, LexicalType.BINARY_OPERATOR).getType());
     }
 
     private void defineSubroutine(ASTNode node) {
@@ -350,18 +318,15 @@ public class CompilationEngineV2 {
         int memberCount, localArgs = table.varCount(IdentifierType.VAR_NAME);
         LOG.info(String.format("%s %s %s %d",
             className, name, type.getName(), localArgs));
-
         if (type == LexicalType.METHOD) {
             vm.compileMethodDec(className, name, localArgs);
         }
-
         if (type == LexicalType.FUNCTION) {
             vm.compileFunctionDec(className, name, localArgs);
         }
-
         if (type == LexicalType.CONSTRUCTOR) {
-            memberCount = table.varCount(IdentifierType.STATIC_NAME);
-            memberCount += table.varCount(IdentifierType.FILED_NAME);
+            memberCount = table.varCount(IdentifierType.STATIC_NAME) +
+                table.varCount(IdentifierType.FILED_NAME);
             vm.compileConstructorDec(className, name, localArgs, memberCount);
         }
     }

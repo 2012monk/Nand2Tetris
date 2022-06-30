@@ -1,4 +1,4 @@
-package compiler;
+package compiler.core;
 
 import compiler.componenets.Identifier;
 import compiler.componenets.VariableIdentifier;
@@ -16,47 +16,45 @@ public class IdentifierTable {
     private static final Logger LOG = Logger.getGlobal();
     private static final String ERR_DUPLICATED_NAME = "duplicated name";
     private final Set<String> unResolved = new HashSet<>();
-    private Map<String, VariableIdentifier> classVars = new HashMap<>();
-    private Map<String, VariableIdentifier> subroutineVars = new HashMap<>();
+    private final Map<String, VariableIdentifier> classVars = new HashMap<>();
+    private final Map<String, VariableIdentifier> subroutineVars = new HashMap<>();
+    private final Stack<Identifier> parent = new Stack<>();
+    private final Map<String, Identifier> subroutines = new HashMap<>();
     private Map<String, VariableIdentifier> cur = classVars;
-    private Stack<Identifier> parent = new Stack<>();
-    private Map<String, Identifier> subroutines = new HashMap<>();
     private String currentClass;
+
+    public String getCurrentClass() {
+        return currentClass;
+    }
 
     public VariableIdentifier declareVariable(String id, IdentifierType type, DataType dataType) {
         if (cur.containsKey(id)) {
             throw new IllegalArgumentException(ERR_DUPLICATED_NAME);
         }
-        int offset = 1;
-        if (type != IdentifierType.ARGUMENT_NAME || parent.peek().getType() != IdentifierType.METHOD_NAME) {
-            offset = 0;
-        }
-        VariableIdentifier identifier = new VariableIdentifier(id, varCount(type) + offset, type,
-            dataType,
-            parent.peek());
+        VariableIdentifier identifier = new VariableIdentifier(id,
+            varCount(type) + getIndexOffset(type), type,
+            dataType, parent.peek());
 
-        LOG.info(String.format("%s %s %s %d \n", type, dataType, id, varCount(type) + offset));
+        LOG.info(String.format("%s %s %s %d \n", type, dataType, id,
+            varCount(type) + getIndexOffset(type)));
         cur.put(id, identifier);
         return identifier;
     }
 
-    public VariableIdentifier declareVariable(String id, IdentifierType type, DataType dataType,
+    public void declareVariable(String id, IdentifierType type, DataType dataType,
         String ref) {
         if (cur.containsKey(id)) {
             throw new IllegalArgumentException(ERR_DUPLICATED_NAME);
         }
-        int offset = 1;
-        if (type != IdentifierType.ARGUMENT_NAME || parent.peek().getType() != IdentifierType.METHOD_NAME) {
-            offset = 0;
-        }
-        VariableIdentifier identifier = new VariableIdentifier(id, varCount(type) + offset, type, dataType,
+        VariableIdentifier identifier = new VariableIdentifier(id,
+            varCount(type) + getIndexOffset(type), type, dataType,
             parent.peek(), ref);
         cur.put(id, identifier);
-        return identifier;
     }
 
     public void declareClass(String name) {
         currentClass = name;
+        cur = classVars;
         parent.push(new Identifier(name, IdentifierType.CLASS_NAME));
     }
 
@@ -64,10 +62,6 @@ public class IdentifierTable {
         Identifier identifier = new Identifier(id, type);
         subroutines.put(id, identifier);
         return identifier;
-    }
-
-    public String getCurrentClass() {
-        return currentClass;
     }
 
     public Identifier reference(String id) {
@@ -85,8 +79,10 @@ public class IdentifierTable {
     }
 
     public int varCount(IdentifierType type) {
-        return (int) (classVars.values().stream().filter(i -> i.is(type)).count() +
-            subroutineVars.values().stream().filter(i -> i.is(type)).count());
+        return (int) (classVars.values().stream()
+            .filter(i -> i.is(type)).count() +
+            subroutineVars.values().stream()
+                .filter(i -> i.is(type)).count());
     }
 
     public void startSubroutine(String name) {
@@ -94,4 +90,13 @@ public class IdentifierTable {
         subroutineVars.clear();
         cur = subroutineVars;
     }
+
+    private int getIndexOffset(IdentifierType type) {
+        if (type != IdentifierType.ARGUMENT_NAME ||
+            parent.peek().getType() != IdentifierType.METHOD_NAME) {
+            return 0;
+        }
+        return 1;
+    }
+
 }

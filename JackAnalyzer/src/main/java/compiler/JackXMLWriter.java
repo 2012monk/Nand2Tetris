@@ -3,6 +3,7 @@ package compiler;
 import compiler.componenets.Identifier;
 import compiler.componenets.VariableIdentifier;
 import compiler.constants.TokenType;
+import compiler.utils.JackFileWriter;
 import java.util.HashMap;
 import java.util.Map;
 

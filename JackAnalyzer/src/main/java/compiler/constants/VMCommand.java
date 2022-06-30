@@ -41,8 +41,6 @@ public enum VMCommand {
     }
 
     public static VMCommand getOP(LexicalType type) {
-        System.out.println(map);
-        System.out.println(type);
         return map.get(type);
     }
 

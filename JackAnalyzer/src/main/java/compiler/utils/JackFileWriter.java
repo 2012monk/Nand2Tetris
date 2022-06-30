@@ -1,4 +1,4 @@
-package compiler;
+package compiler.utils;
 
 
 import java.io.FileWriter;

@@ -1,5 +1,6 @@
-package compiler;
+package compiler.core;
 
+import compiler.utils.JackFileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,7 +11,7 @@ import java.util.stream.Stream;
 
 public class Compiler {
 
-    private CompilationEngineV2 engine;
+    private CompilationEngine engine;
     private List<Path> files;
 
     public Compiler(String path){
@@ -23,7 +24,7 @@ public class Compiler {
 
     private void compileFile(String path) {
         String dest = path.replace(".jack", ".vm");
-        engine = new CompilationEngineV2(new JackTokenizer(path), new JackFileWriter(dest));
+        engine = new CompilationEngine(new JackTokenizer(path), new JackFileWriter(dest));
         engine.compile();
     }
 

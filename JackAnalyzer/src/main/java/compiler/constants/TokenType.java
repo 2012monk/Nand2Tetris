@@ -30,15 +30,6 @@ public enum TokenType {
     private static final Predicate<String> IDENTIFIER_PRE =
         Pattern.compile("^(?!\\d)[\\w\\d_]+").asMatchPredicate();
     private static final int INT_CONST_MAX = 1 << 16;
-    private static final Pattern KEY_WORD_PATTERN =
-        Pattern.compile("class|constructor|function|method|field|static|var|int" +
-            "|char|boolean|void|true|false|null|this|let|do|if|else|while|return");
-    private static final String SYMBOL_CHARS = "(\\{|\\}|\\(|\\)|\\[|\\]|\\.|\\,|\\;|\\+|\\-|\\*|\\/|\\&|\\||\\<)";
-    private static final String SYMBOL_CHARS2 = "[{}()\\[\\].,;+\\-*/&|<>=~]";
-    private static final Pattern SYMBOL_SPLITTER =
-        Pattern.compile(String.format("((?<=%s)|(?=%s))", SYMBOL_CHARS2, SYMBOL_CHARS2));
-    private static final Pattern SYMBOL_PATTERN =
-        Pattern.compile(SYMBOL_CHARS2);
 
     private static final PriorityQueue<TokenType> set = new PriorityQueue<>(Comparator.comparingInt(
         t -> t.priority));
@@ -87,10 +78,6 @@ public enum TokenType {
 
     private static boolean isIdentifier(String v) {
         return IDENTIFIER_PRE.test(v);
-    }
-
-    public static Pattern symbolSplitter() {
-        return SYMBOL_SPLITTER;
     }
 
     public String tokenName() {

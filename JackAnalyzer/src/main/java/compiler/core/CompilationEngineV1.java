@@ -1,4 +1,4 @@
-package compiler;
+package compiler.core;
 
 import static compiler.constants.Keyword.BOOLEAN;
 import static compiler.constants.Keyword.CHAR;
@@ -27,6 +27,7 @@ import static compiler.constants.TokenType.KEY_WORD;
 import static compiler.constants.TokenType.STRING_CONSTANT;
 import static compiler.constants.TokenType.SYMBOL;
 
+import compiler.JackWriter;
 import compiler.ast.ASTNode;
 import compiler.componenets.Identifier;
 import compiler.componenets.VariableIdentifier;
@@ -102,17 +103,11 @@ public class CompilationEngineV1 {
             raiseErrInvalidSyntax();
         }
         addNode("subroutineDec");
-//        declareSubroutine();
-        Keyword key = compileKeyword(CONSTRUCTOR, FUNCTION, METHOD);
-        Keyword t = compileType(INT, BOOLEAN, CHAR, VOID);
-        Identifier id = declareIdentifier(IdentifierType.type(key));
+        declareSubroutine();
         compileSymbol('(');
         compileParameterList();
         compileSymbol(')');
         compileSubroutineBody();
-        int argc = table.varCount(IdentifierType.VAR_NAME);
-        System.out.printf("subroutine %s %s %s locals=%d",
-            key.getName(), id.getName(), t.getName(), argc);
         closeNode("subroutineDec");
     }
 
@@ -120,6 +115,9 @@ public class CompilationEngineV1 {
         Keyword key = compileKeyword(CONSTRUCTOR, FUNCTION, METHOD);
         Keyword t = compileType(INT, BOOLEAN, CHAR, VOID);
         Identifier id = declareIdentifier(IdentifierType.type(key));
+        int argc = table.varCount(IdentifierType.VAR_NAME);
+        System.out.printf("subroutine %s %s %s locals=%d",
+            key.getName(), id.getName(), t.getName(), argc);
     }
 
     public void compileSubroutineBody() {

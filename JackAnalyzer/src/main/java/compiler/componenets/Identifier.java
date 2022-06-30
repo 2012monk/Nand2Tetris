@@ -19,10 +19,6 @@ public class Identifier {
         this.parent = parent;
     }
 
-    private Identifier() {
-        this.type = IdentifierType.NONE;
-    }
-
     public boolean is(IdentifierType type) {
         return this.type == type;
     }
@@ -37,10 +33,6 @@ public class Identifier {
 
     public Identifier getParent() {
         return parent;
-    }
-
-    public void setParent(Identifier id) {
-        this.parent = id;
     }
 
     public boolean isVariable() {

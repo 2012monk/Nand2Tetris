@@ -1,6 +1,8 @@
-package compiler;
+package compiler.utils;
 
 import compiler.ast.ASTNode;
+import compiler.core.JackTokenizer;
+import compiler.parser.Parser;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

@@ -5,18 +5,18 @@ import java.util.Map;
 
 public enum IdentifierType {
 
-    CLASS_NAME("className", Keyword.CLASS, Scope.GLOBAL),
+    CLASS_NAME("className", Keyword.CLASS),
 
-    CONSTRUCTOR_NAME("constructorName", Keyword.CONSTRUCTOR, Scope.CLASS),
-    FUNCTIONS_NAME("functionName", Keyword.FUNCTION, Scope.CLASS),
-    METHOD_NAME("methodName", Keyword.METHOD, Scope.CLASS),
+    CONSTRUCTOR_NAME("constructorName", Keyword.CONSTRUCTOR),
+    FUNCTIONS_NAME("functionName", Keyword.FUNCTION),
+    METHOD_NAME("methodName", Keyword.METHOD),
 
-    STATIC_NAME("static", Keyword.STATIC, Scope.CLASS),
-    FILED_NAME("filed", Keyword.FIELD, Scope.CLASS),
+    STATIC_NAME("static", Keyword.STATIC),
+    FILED_NAME("filed", Keyword.FIELD),
 
-    VAR_NAME("var", Keyword.VAR, Scope.SUB_ROUTINE),
-    ARGUMENT_NAME("argument", Keyword.VAR, Scope.SUB_ROUTINE),
-    NONE("none", null, null);
+    VAR_NAME("var", Keyword.VAR),
+    ARGUMENT_NAME("argument", Keyword.VAR),
+    NONE("none", null);
 
     private static final Map<Keyword, IdentifierType> map = new HashMap<>();
 
@@ -29,12 +29,10 @@ public enum IdentifierType {
 
     private String id;
     private Keyword keyword;
-    private Scope scope;
 
-    IdentifierType(String id, Keyword keyword, Scope scope) {
+    IdentifierType(String id, Keyword keyword) {
         this.id = id;
         this.keyword = keyword;
-        this.scope = scope;
     }
 
     public static IdentifierType type(Keyword keyword) {
@@ -52,6 +50,14 @@ public enum IdentifierType {
             return CONSTRUCTOR_NAME;
         }
         throw new IllegalArgumentException();
+    }
+
+    public static IdentifierType varType(LexicalType type) {
+        if (type == LexicalType.PARAMETER) return ARGUMENT_NAME;
+        if (type == LexicalType.VAR) return VAR_NAME;
+        if (type == LexicalType.FIELD) return FILED_NAME;
+        if (type == LexicalType.STATIC) return STATIC_NAME;
+        throw new IllegalArgumentException(type.getName());
     }
 
     public String id() {

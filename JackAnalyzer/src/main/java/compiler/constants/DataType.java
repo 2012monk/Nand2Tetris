@@ -10,7 +10,7 @@ public enum DataType {
     TYPE_CHAR(Keyword.CHAR),
     TYPE_CLASS(Keyword.CLASS),
     TYPE_VOID(Keyword.VOID),
-    REF_TYPE(Keyword.FUNCTION),
+    TYPE_REF(Keyword.FUNCTION),
     TYPE_SUBROUTINE(Keyword.FUNCTION) ;
 
     private static final Map<Keyword, DataType> map = new HashMap<>();
@@ -31,7 +31,4 @@ public enum DataType {
         return map.get(key);
     }
 
-    public static boolean contains(Keyword type) {
-        return map.containsKey(type);
-    }
 }

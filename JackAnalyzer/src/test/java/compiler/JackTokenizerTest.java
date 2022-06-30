@@ -3,10 +3,10 @@ package compiler;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 import compiler.constants.TokenType;
+import compiler.core.JackTokenizer;
+import compiler.utils.JackFileWriter;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
