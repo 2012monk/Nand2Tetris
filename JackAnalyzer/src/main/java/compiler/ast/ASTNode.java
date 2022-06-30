@@ -109,6 +109,12 @@ public class ASTNode {
         return null;
     }
 
+    public Optional<ASTNode> findInImmediate(LexicalType type) {
+        return children.stream()
+            .filter(t -> t.getType() == type)
+            .findFirst();
+    }
+
     public List<ASTNode> findChildren(LexicalType type) {
         List<ASTNode> r = new ArrayList<>();
         findChildren(type, r);
@@ -126,5 +132,9 @@ public class ASTNode {
 
     public ASTNode getLastChild() {
         return children.getLast();
+    }
+
+    public ASTNode getChild(int i) {
+        return children.get(i);
     }
 }

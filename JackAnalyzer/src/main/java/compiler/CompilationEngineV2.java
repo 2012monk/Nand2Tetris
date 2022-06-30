@@ -8,9 +8,9 @@ import compiler.constants.IdentifierType;
 import compiler.constants.LexicalType;
 import compiler.constants.MemorySegment;
 import compiler.constants.VMCommand;
-import java.lang.reflect.AnnotatedType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,7 +21,7 @@ public class CompilationEngineV2 {
     private static final String IF_END = "IF_END_";
     private static final String WHILE_COND = "WHILE_CONDITION_";
     private static final String WHILE_END = "WHILE_END_";
-    private Logger log = Logger.getLogger("compileEngineLogger");
+    private final Logger LOG = Logger.getLogger("compileEngineLogger");
     private IdentifierTable table;
     private ASTNode parsed;
     private VMWriter vm;
@@ -39,14 +39,13 @@ public class CompilationEngineV2 {
         parsed = parser.parse();
         try {
             XMLUtil.writeXml("src/test/resources/tml.xml", parsed);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
         }
-        try {
-            compileClass(parsed);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        compileClass(parsed);
+//        try {
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
         vm.close();
     }
 
@@ -60,6 +59,9 @@ public class CompilationEngineV2 {
         }
         List<ASTNode> subDecs = new ArrayList<>();
         node.findChildren(LexicalType.SUBROUTINE_DECLARATION, subDecs);
+        for (ASTNode n : subDecs) {
+            defineSubroutine(n);
+        }
         for (ASTNode n : subDecs) {
             compileSubroutine(n);
         }
@@ -109,7 +111,8 @@ public class CompilationEngineV2 {
         for (ASTNode c : nodes) {
             defineVar(c);
         }
-        List<ASTNode> params = node.findPreOrder(LexicalType.PARAMETER_LIST).findChildren(LexicalType.PARAMETER);
+        List<ASTNode> params = node.findPreOrder(LexicalType.PARAMETER_LIST)
+            .findChildren(LexicalType.PARAMETER);
         for (ASTNode p : params) {
             defineParameter(p);
         }
@@ -134,11 +137,10 @@ public class CompilationEngineV2 {
         if (node == null) {
             return;
         }
-        log.log(Level.INFO, "start " + node.children().size());
+        LOG.info("statements children :" + node.children().size());
         for (ASTNode c : node.children()) {
             LexicalType t = c.getType();
-//            log.log(Level.INFO, "next : " + t.getName());
-            System.out.println(t);
+            LOG.info("start statement : " + t);
             if (t == LexicalType.IF_STATEMENT) {
                 compileIf(c);
             }
@@ -156,48 +158,64 @@ public class CompilationEngineV2 {
     }
 
     private void compileIf(ASTNode node) {
-        compileExpr(node.findFirst(LexicalType.CONDITION_EXPRESSION));
+        ASTNode ifBody = node.findInImmediate(LexicalType.IF_BODY).orElseThrow();
+        compileExpr(node.findPreOrder(LexicalType.EXPRESSION));
+        Optional<ASTNode> el = node.findInImmediate(LexicalType.ELSE_BODY);
+        if (el.isPresent()) {
+            ifElseBlock(ifBody.findPreOrder(LexicalType.STATEMENTS),
+                el.get().findPreOrder(LexicalType.STATEMENTS), ifIndex++);
+        } else {
+            ifBlock(ifBody.findPreOrder(LexicalType.STATEMENTS), ifIndex++);
 
-        vm.writeArithmetic(VMCommand.NOT);
-        vm.writeIf(IF_TRUE + ifIndex);
-        vm.writeGoto(IF_FALSE + ifIndex);
+        }
+    }
 
-        compileStatements(node.findFirst(LexicalType.BLOCK_STATEMENTS));
+    private void ifBlock(ASTNode ifSt, int idx) {
+        vm.writeIf(IF_TRUE + idx);
+        vm.writeGoto(IF_FALSE + idx);
+        vm.writeLabel(IF_TRUE + idx);
+        compileStatements(ifSt);
+        vm.writeLabel(IF_FALSE + idx);
+    }
 
-        vm.writeLabel(IF_TRUE + ifIndex);
-        vm.writeGoto(IF_END + ifIndex);
-        vm.writeLabel(IF_FALSE + ifIndex);
-
-        compileStatements(node.findFirst(LexicalType.ELSE_BODY));
-
-        vm.writeLabel(IF_END + ifIndex++);
+    private void ifElseBlock(ASTNode ifSt, ASTNode elseSt, int idx) {
+        vm.writeIf(IF_TRUE + idx);
+        vm.writeGoto(IF_FALSE + idx);
+        vm.writeLabel(IF_TRUE + idx);
+        compileStatements(ifSt);
+        vm.writeGoto(IF_END + idx);
+        vm.writeLabel(IF_FALSE + idx);
+        compileStatements(elseSt);
+        vm.writeLabel(IF_END + idx);
     }
 
     private void compileExprs(ASTNode node) {
-        log.log(Level.INFO, "compile args");
+        LOG.log(Level.INFO, "compile args");
         for (ASTNode c : node.children()) {
             if (c.getType() == LexicalType.EXPRESSION) {
-                log.log(Level.INFO, "args - expression " + c.getFirstChild().getType());
+                LOG.log(Level.INFO, "args - expression " + c.getFirstChild().getType());
                 compileExpr(c);
             }
         }
     }
 
     private void compileWhile(ASTNode node) {
-        vm.writeLabel(WHILE_COND + wIndex);
-        compileExpr(node.findFirst(LexicalType.EXPRESSION));
+        int idx = wIndex++;
+        vm.writeLabel(WHILE_COND + idx);
+        compileExpr(node.findPreOrder(LexicalType.EXPRESSION));
         vm.writeArithmetic(VMCommand.NOT);
-        vm.writeIf(WHILE_END + wIndex);
-        compileStatements(node.findPreOrder(LexicalType.BLOCK_STATEMENTS)
-            .findPreOrder(LexicalType.STATEMENTS));
-        vm.writeGoto(WHILE_COND + wIndex);
-        vm.writeLabel(WHILE_END + wIndex++);
+        vm.writeIf(WHILE_END + idx);
+        node.findPreOrder(LexicalType.BLOCK_STATEMENTS)
+            .findInImmediate(LexicalType.STATEMENTS)
+            .ifPresent(this::compileStatements);
+        vm.writeGoto(WHILE_COND + idx);
+        vm.writeLabel(WHILE_END + idx);
     }
 
     private void compileLet(ASTNode node) {
         for (ASTNode c : node.children()) {
             if (c.getType() == LexicalType.EXPRESSION) {
-                log.log(Level.INFO, "let statement expr");
+                LOG.log(Level.INFO, "let statement expr");
                 compileExpr(c);
             }
         }
@@ -215,9 +233,7 @@ public class CompilationEngineV2 {
         if (node == null) {
             return;
         }
-        System.out.println(node.getType());
-        System.out.println(node.getFirstChild().getType());
-        System.out.println(node.getFirstChild().getToken());
+        LOG.info("");
         VariableIdentifier ref = (VariableIdentifier) table.reference(
             node.getFirstChild().getValue());
         compileExpr(node.findPreOrder(LexicalType.EXPRESSION));
@@ -227,7 +243,10 @@ public class CompilationEngineV2 {
     }
 
     private void compileReturn(ASTNode node) {
-        compileExpr(node.getLastChild());
+        for (ASTNode child : node.children()) {
+            System.out.println(child.getType());
+        }
+        compileExpr(node.findPreOrder(LexicalType.EXPRESSION));
         vm.writeReturn();
     }
 
@@ -246,7 +265,7 @@ public class CompilationEngineV2 {
     private void compileTerm(ASTNode node) {
         node = node.getFirstChild();
         LexicalType type = node.getType();
-        log.log(Level.INFO, "compile term " + type.getName());
+        LOG.log(Level.INFO, "compile term " + type.getName());
         if (type == LexicalType.REF_TYPE) {
             pushNode(node.getFirstChild());
         }
@@ -280,44 +299,55 @@ public class CompilationEngineV2 {
     }
 
     private void compileCall(ASTNode node) {
-        log.log(Level.INFO, node.getType().getName());
-        ASTNode refNode = firstChild(node, LexicalType.REF_TYPE);
         String func = firstChild(node, LexicalType.SUBROUTINE_NAME).getValue();
         String ref = table.getCurrentClass();
-        if (refNode != null) {
-            ref = refNode.getValue();
-        }
-        log.log(Level.INFO, func + " " + ref);
-        if (table.reference(func).getType() == IdentifierType.METHOD_NAME) {
-            vm.writePush(MemorySegment.PTR, 0);
+        int argc = 0;
+        try {
+            ref = firstChild(node, LexicalType.REF_TYPE).getValue();
+        } catch (NullPointerException ignored) {
         }
         Identifier id = table.reference(ref);
+
+        LOG.info(func + " " + table.reference(func).getType() + " " + ref + "  " + id.getType());
         if (id.isVariable()) { // method call
+            argc = 1;
             vm.writePush((VariableIdentifier) id);
             ref = ((VariableIdentifier) id).getRef();
-        }
-        for (ASTNode child : node.children()) {
-            log.log(Level.INFO, child.getType().getName());
+        } else if (table.reference(func).getType() == IdentifierType.METHOD_NAME) {
+            argc = 1;
+            vm.writePush(MemorySegment.PTR, 0);
         }
         ASTNode args = node.findFirst(LexicalType.EXPRESSION_LIST);
 
         compileExprs(args);
-        int argc = findChildren(args, LexicalType.COMMA).size() + 1;
+        argc += args.children()
+            .stream()
+            .filter(c -> c.getType() == LexicalType.EXPRESSION)
+            .count();
         vm.compileCall(ref, func, argc);
     }
 
     private void pushNode(ASTNode node) {
         Identifier id = table.reference(node.getValue());
-        System.out.println(id.getType() + id.getName());
-        System.out.println(node.getValue());
         vm.writePush((VariableIdentifier) id);
     }
 
     private void compileBinaryExpr(ASTNode node) {
-        log.log(Level.INFO, "binaryExpr " + node.getType());
+        LOG.info("");
         compileTerm(node.getLastChild());
         vm.compileOp(firstChild(node, LexicalType.OPERATOR).getType());
-        log.log(Level.INFO, "operator compile" + firstChild(node, LexicalType.OPERATOR).getType());
+    }
+
+    private void defineSubroutine(ASTNode node) {
+        LexicalType type = node.findInImmediate(LexicalType.SUBROUTINE_PREFIX)
+            .orElseThrow()
+            .getFirstChild()
+            .getType();
+        String name = node.findInImmediate(LexicalType.SUBROUTINE_NAME)
+            .orElseThrow()
+            .getFirstChild()
+            .getValue();
+        table.declareIdentifier(name, IdentifierType.subroutineType(type));
     }
 
     private void compileSubroutineDec(ASTNode node) {
@@ -326,17 +356,18 @@ public class CompilationEngineV2 {
         LexicalType type = firstChild(node, LexicalType.SUBROUTINE_PREFIX).getType();
         String name = firstChild(node, LexicalType.SUBROUTINE_NAME).getValue();
         String className = table.getCurrentClass();
-        System.out.println(className + "   " + name);
+        LOG.info(String.format("%s %s %s %d",
+            className, name, type.getName(), localArgs));
+
         if (type == LexicalType.METHOD) {
-            table.declareIdentifier(name, IdentifierType.METHOD_NAME);
-            vm.compileMethodDec(table.getCurrentClass(), name, localArgs);
+            vm.compileMethodDec(className, name, localArgs);
         }
+
         if (type == LexicalType.FUNCTION) {
-            table.declareIdentifier(name, IdentifierType.FUNCTIONS_NAME);
             vm.compileFunctionDec(className, name, localArgs);
         }
+
         if (type == LexicalType.CONSTRUCTOR) {
-            table.declareIdentifier(name, IdentifierType.CONSTRUCTOR_NAME);
             memberCount = table.varCount(IdentifierType.STATIC_NAME);
             memberCount += table.varCount(IdentifierType.FILED_NAME);
             vm.compileConstructorDec(className, name, localArgs, memberCount);
@@ -345,11 +376,5 @@ public class CompilationEngineV2 {
 
     public ASTNode firstChild(ASTNode node, LexicalType type) {
         return node.findFirst(type).getFirstChild();
-    }
-
-    public List<ASTNode> findChildren(ASTNode node, LexicalType type) {
-        List<ASTNode> r = new ArrayList<>();
-        node.findChildren(type, r);
-        return r;
     }
 }

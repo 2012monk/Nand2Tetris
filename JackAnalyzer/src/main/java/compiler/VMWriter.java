@@ -23,6 +23,8 @@ public class VMWriter {
     private static final String STR_APPEND = "String.appendChar";
     private static final String MULT = "Math.multiply";
     private static final String DIV = "Math.divide";
+    private static final String ALLOC = "Memory.alloc";
+    private static final String DE_ALLOC = "Memory.deAlloc";
     private final JackFileWriter writer;
 
     public VMWriter(JackFileWriter writer) {
@@ -79,7 +81,7 @@ public class VMWriter {
     }
 
     public void compileMethodDec(String className, String name, int localArgc) {
-        compileFunctionDec(className, name, localArgc + 1);
+        compileFunctionDec(className, name, localArgc);
         writePush(ARG, 0);
         writePop(PTR, 0);
     }
@@ -87,7 +89,7 @@ public class VMWriter {
     public void compileConstructorDec(String className, String name, int localArgc, int size) {
         compileFunctionDec(className, name, localArgc);
         writePush(CONSTANT, size);
-        writeCall("Memory.Alloc", 1);
+        writeCall(ALLOC, 1);
         writePop(PTR, 0);
     }
 
@@ -112,7 +114,6 @@ public class VMWriter {
 
     public void compileStringConst(String str) {
         int size = str.length();
-        System.out.println(str + "  debug " + size);
         writePush(CONSTANT, size);
         writeCall(STRING_NEW, 1);
         str.chars().forEach(c -> {
@@ -122,7 +123,14 @@ public class VMWriter {
     }
 
     public void compileKeywordConst(LexicalType type) {
-        System.out.println(type);
+        if (type == LexicalType.THIS) {
+            writePush(PTR, 0);
+            return;
+        }
+        writePush(CONSTANT, 0);
+        if (type == LexicalType.TRUE) {
+            writeArithmetic(VMCommand.NOT);
+        }
     }
 
     public void compileOp(LexicalType type) {

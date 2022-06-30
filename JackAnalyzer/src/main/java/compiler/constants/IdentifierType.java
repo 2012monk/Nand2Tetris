@@ -41,21 +41,21 @@ public enum IdentifierType {
         return map.get(keyword);
     }
 
-    public static IdentifierType typeG(LexicalType type) {
-        Keyword k = type.keyword();
-        return map.get(k);
+    public static IdentifierType subroutineType(LexicalType type) {
+        if (type == LexicalType.METHOD) {
+            return METHOD_NAME;
+        }
+        if (type == LexicalType.FUNCTION) {
+            return FUNCTIONS_NAME;
+        }
+        if (type == LexicalType.CONSTRUCTOR) {
+            return CONSTRUCTOR_NAME;
+        }
+        throw new IllegalArgumentException();
     }
 
     public String id() {
         return id;
-    }
-
-    public Scope scope() {
-        return scope;
-    }
-
-    public Keyword keyword() {
-        return keyword;
     }
 
     public String getName() {
