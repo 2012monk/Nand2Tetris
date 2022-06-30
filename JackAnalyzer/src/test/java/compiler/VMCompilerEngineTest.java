@@ -1,7 +1,5 @@
 package compiler;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 
 public class VMCompilerEngineTest {
@@ -28,14 +26,17 @@ public class VMCompilerEngineTest {
     }
 
     @Test
-    void squareSquare() {
-        test("../11/Square/Square.jack");
+    void average() {
+        test("../11/Average/");
+    }
 
+    @Test
+    void pong() {
+        test("../11/Pong/");
     }
 
     void test(String path) {
         new Compiler(path).compile();
-        System.out.println(Path.of((path.replace(".jack", "C.vm"))));
 
     }
 }

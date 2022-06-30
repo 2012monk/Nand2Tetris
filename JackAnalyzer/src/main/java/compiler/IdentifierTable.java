@@ -27,11 +27,15 @@ public class IdentifierTable {
         if (cur.containsKey(id)) {
             throw new IllegalArgumentException(ERR_DUPLICATED_NAME);
         }
-        VariableIdentifier identifier = new VariableIdentifier(id, varCount(type), type,
+        int offset = 1;
+        if (type != IdentifierType.ARGUMENT_NAME || parent.peek().getType() != IdentifierType.METHOD_NAME) {
+            offset = 0;
+        }
+        VariableIdentifier identifier = new VariableIdentifier(id, varCount(type) + offset, type,
             dataType,
             parent.peek());
 
-        LOG.info(String.format("%s %s %s %d \n", type, dataType, id, varCount(type)));
+        LOG.info(String.format("%s %s %s %d \n", type, dataType, id, varCount(type) + offset));
         cur.put(id, identifier);
         return identifier;
     }
@@ -41,7 +45,11 @@ public class IdentifierTable {
         if (cur.containsKey(id)) {
             throw new IllegalArgumentException(ERR_DUPLICATED_NAME);
         }
-        VariableIdentifier identifier = new VariableIdentifier(id, varCount(type), type, dataType,
+        int offset = 1;
+        if (type != IdentifierType.ARGUMENT_NAME || parent.peek().getType() != IdentifierType.METHOD_NAME) {
+            offset = 0;
+        }
+        VariableIdentifier identifier = new VariableIdentifier(id, varCount(type) + offset, type, dataType,
             parent.peek(), ref);
         cur.put(id, identifier);
         return identifier;
@@ -81,7 +89,8 @@ public class IdentifierTable {
             subroutineVars.values().stream().filter(i -> i.is(type)).count());
     }
 
-    public void startSubroutine() {
+    public void startSubroutine(String name) {
+        parent.push(subroutines.get(name));
         subroutineVars.clear();
         cur = subroutineVars;
     }
