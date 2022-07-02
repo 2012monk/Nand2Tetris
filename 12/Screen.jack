@@ -27,11 +27,12 @@ class Screen {
         let _r = Array.new(16);
         let _l = Array.new(16);
         let _color = 1;
-        let i = 0;
         let _pixels[0] = 1;
         let _l[0] = 1;
         let _r[0]=-1;
         let _off_pixels[0] = -1&(~_pixels[0]);
+
+        let i = 0;
         while (i < 16) {
             if (i > 0) {
                 let _pixels[i] = _pixels[i - 1] + _pixels[i - 1];
@@ -43,7 +44,6 @@ class Screen {
             }
             let i = i + 1;
         }
-        let i = 0;
         return;
     }
 
@@ -68,6 +68,7 @@ class Screen {
     /** Draws the (x,y) pixel, using the current color. */
     function void drawPixel(int x, int y) {
         var int i, pos;
+        /* let i = y * 32 + (x / 16); */
         let i = y * 32 + Math.divide(x, 16);
         let pos = x & 15;
         if (~(i < _max)) {

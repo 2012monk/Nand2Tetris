@@ -16,7 +16,7 @@ class Memory {
     function void init() {
         let _mem = 0;
         let _free = 2048;
-        let _free[0] = 16383;
+        let _free[0] = 16384-2048;
         let _free[1] = -1;
         let last = 0;
         return;
@@ -39,24 +39,43 @@ class Memory {
         var int i, bsize, ret;
         let i = Memory.find(size);
         let bsize = _free[i];
-        let _free[i] = bsize - size - 1;
+        if (bsize < (size + 10)) {
+            let size = bsize - 1;
+        }
+        let _free[i] = bsize - size;
         let ret = i + bsize - size;
         let _free[ret - 1] = size + 1;
         return ret;
     }
 
+    /** find memory block first fix */
     function int find(int size) {
         var int i;
         let i = 0;
-        while (_free[i] < size) {
+        while (_free[i] < (size + 1)) {
             if (_free[i+1] < 0) {
-                do Sys.error(-999);
-                do Sys.halt();
                 return -1;
             }
             let i = _free[i+1];
         }
         return i;
+    }
+
+    function int _collect(int start) {
+        var int i, next;
+        if (start < 0) {
+            return -1;
+        }
+        let i = Memory._collect(_free[start + 1]);
+        if (i < 0) {
+            return start;
+        }
+        let next = _free[start] + start;
+        return -1;
+    }
+
+    function void find_prev(int i) {
+        return;
     }
 
     /** De-allocates the given object (cast as an array) by making
